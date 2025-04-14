@@ -7,7 +7,7 @@ TemperMonkey Scripts
 
 ## Install step:
 
-1. install browser extension [Tempermonkey](https://www.tampermonkey.net/)
+1. Install browser extension [Tempermonkey](https://www.tampermonkey.net/)
    ![image](https://github.com/user-attachments/assets/1bcbc6f9-3ad2-463e-8bfb-8b14f3156bda)
 
 3. Choose above script which you want, and click The "Raw" botton
