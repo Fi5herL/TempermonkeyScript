@@ -11,7 +11,7 @@ TemperMonkey Scripts
 
    ![image](https://github.com/user-attachments/assets/1bcbc6f9-3ad2-463e-8bfb-8b14f3156bda)
 
-2. Open Extension **Developer mode**. For [Edge](edge://extensions/), for [Chrome](chrome://extensions/)
+2. Open Extension **Developer mode**. For Edge edge://extensions/, for Chrome chrome://extensions/
 
    - Chrome
    
