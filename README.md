@@ -11,13 +11,13 @@ TemperMonkey Scripts
 
    ![image](https://github.com/user-attachments/assets/1bcbc6f9-3ad2-463e-8bfb-8b14f3156bda)
 
-2. Open Extension **Developer mode**. For Edge [edge://extensions/](edge://extensions/), for Chrome chrome://extensions/
+2. Go to your browser **Manage Extension** setting and open **Developer mode**
 
-   - Chrome
+   - Chrome: chrome://extensions/
    
    ![image](https://github.com/user-attachments/assets/4f470393-e217-436a-8b95-02cd18ba6f3c)
 
-   - Edge
+   - Edge: edge://extensions/
 
    ![image](https://github.com/user-attachments/assets/399ebbaf-b8eb-49c6-a976-68fae908caac)
 
