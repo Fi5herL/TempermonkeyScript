@@ -14,9 +14,11 @@ TemperMonkey Scripts
 2. Open Extension **Developer mode**
 
 - Chrome
+
 ![image](https://github.com/user-attachments/assets/4f470393-e217-436a-8b95-02cd18ba6f3c)
 
 - Edge
+
 ![image](https://github.com/user-attachments/assets/399ebbaf-b8eb-49c6-a976-68fae908caac)
 
 
