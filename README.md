@@ -1,11 +1,11 @@
-# TempermonkeyScript
+# TempermonkeyScript 🐒
 TemperMonkey Scripts
 
 - Active for [https://www.chlife-stat.org/](https://www.chlife-stat.org/) for week and year report download.
    - ChurchLifeFullYearReportDownload.user.js
    - ChurchLifeWeekReportDownload.user.js
 
-## Install step:
+## Install Steps 👟
 
 1. Install browser extension [Tempermonkey](https://www.tampermonkey.net/)
 
