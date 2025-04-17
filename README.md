@@ -13,7 +13,7 @@ TemperMonkey Scripts
 
 2. Go to your browser **Manage Extension** setting and open **Developer mode**
 
-   - Chrome: chrome://extensions/
+   - Chrome: ``` chrome://extensions/ ```
    
    ![image](https://github.com/user-attachments/assets/4f470393-e217-436a-8b95-02cd18ba6f3c)
 
