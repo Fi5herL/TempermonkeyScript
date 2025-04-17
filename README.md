@@ -2,11 +2,11 @@
 TemperMonkey Scripts
 
 - Active for [https://www.chlife-stat.org/](https://www.chlife-stat.org/) for week and year report download.
-   - ChurchLifeFullYearReportDownload.user.js
-   - ChurchLifeWeekReportDownload.user.js
+   - [ChurchLifeFullYearReportDownload.user.js](https://github.com/Fi5herL/TempermonkeyScript/blob/main/ChurchLifeFullYearReportDownload.user.js)
+   - [ChurchLifeWeekReportDownload.user.js](https://github.com/Fi5herL/TempermonkeyScript/blob/main/ChurchLifeWeekReportDownload.user.js)
 
 - Active for Clock in/out system [Login-site](https://fa-eups-saasfaprod1.fa.ocs.oraclecloud.com/) for auto clock-in/out work days
-   - ClockInOutAutomation
+   - [ClockInOutAutomation]()
 
 ## Install Steps 👟
 
