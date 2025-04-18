@@ -10,6 +10,8 @@ TemperMonkey Scripts
 - Active for Clock in/out system [Login-site](https://fa-eups-saasfaprod1.fa.ocs.oraclecloud.com/) for auto clock-in/out work days
    - [ClockInOutAutomation]()
 
+- Active Project Price Summary [Flex](https://portal.ul.com/Dashboard)
+   - [PjPriceSum.user.js](https://github.com/Fi5herL/TempermonkeyScript/raw/refs/heads/main/PjPriceSum.user.js)
 ## Install Steps 👟
 
 ---
