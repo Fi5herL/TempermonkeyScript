@@ -47,3 +47,9 @@ TemperMonkey Scripts
 ---
 
 5. Go to your Target website and have fun
+
+---
+
+## Other Tools
+
+- [操作紀錄器](https://greasyfork.org/zh-CN/scripts/461403-%E6%93%8D%E4%BD%9C%E8%AE%B0%E5%BD%95%E5%99%A8)
