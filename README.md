@@ -4,8 +4,8 @@ TemperMonkey Scripts
 - Active for [https://www.chlife-stat.org/](https://www.chlife-stat.org/) for MTG reports download.
    - 👤[ChurchLifeBasicInfoByNum.user.js](https://github.com/Fi5herL/TempermonkeyScript/raw/refs/heads/main/ChurchLifeBasicInfoByNum.user.js)
    - ⚙️[ChurchLifeYearByNumByMTG.user.js](https://github.com/Fi5herL/TempermonkeyScript/raw/refs/heads/main/ChurchLifeYearByNumByMTG.user.js)
-   - [ChurchLifeFullYearReportDownload.user.js]([https://github.com/Fi5herL/TempermonkeyScript/blob/main/](https://github.com/Fi5herL/TempermonkeyScript/raw/refs/heads/main/)ChurchLifeFullYearReportDownload.user.js)
-   - [ChurchLifeWeekReportDownload.user.js]([https://github.com/Fi5herL/TempermonkeyScript/blob/main/](https://github.com/Fi5herL/TempermonkeyScript/raw/refs/heads/main/)ChurchLifeWeekReportDownload.user.js)
+   - [ChurchLifeFullYearReportDownload.user.js](https://github.com/Fi5herL/TempermonkeyScript/raw/refs/heads/main/ChurchLifeFullYearReportDownload.user.js)
+   - [ChurchLifeWeekReportDownload.user.js](https://github.com/Fi5herL/TempermonkeyScript/raw/refs/heads/main/ChurchLifeWeekReportDownload.user.js)
 
 - Active for Clock in/out system [Login-site](https://fa-eups-saasfaprod1.fa.ocs.oraclecloud.com/) for auto clock-in/out work days
    - [ClockInOutAutomation]()
