@@ -1,10 +1,11 @@
 // ==UserScript==
-// @name         點名系統手機版
+// @name         表格樣式切換器 (含RWD)
 // @namespace    http://tampermonkey.net/
 // @version      2025-04-19
 // @description  try to take over the world!
-// @author       Fisher Li
+// @author       You
 // @match        https://www.chlife-stat.org/
+// @match        https://www.chlife-stat.org/index.php
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=chlife-stat.org
 // @grant        GM_addStyle
 // @grant        GM_setValue
@@ -15,7 +16,10 @@
     'use strict';
 
     const TABLE_ID = 'table';
+    const MENU_ID = 'menu'; // 目標菜單欄 ID
     const FIXED_HEADER_TABLE_SELECTOR = 'table.fixed-header';
+    const FIXED_HEADER2_TABLE_SELECTOR = 'table.fixed-header2';
+    const FIXED_BODY_TABLE_SELECTOR = 'table.fixed-body';
     const TOGGLE_BUTTON_ID = 'table-style-toggle-button';
     const SIMPLIFIED_CLASS = 'simplified-table-view';
     const STORAGE_KEY = 'tableSimplifiedPreference';
@@ -30,18 +34,43 @@
 
     // --- CSS 樣式 (強制覆蓋) ---
     GM_addStyle(`
-        /* --- 屏蔽複製出來的固定表頭 --- */
-        ${FIXED_HEADER_TABLE_SELECTOR} { display: none !important; }
-
-        /* --- 浮動按鈕樣式 --- */
-        #${TOGGLE_BUTTON_ID} {
-            position: fixed !important; bottom: 20px !important; right: 20px !important;
-            padding: 10px 15px !important; background-color: #007bff !important; color: white !important;
-            border: none !important; border-radius: 5px !important; cursor: pointer !important;
-            z-index: 9999 !important; box-shadow: 2px 2px 5px rgba(0,0,0,0.2) !important;
-            font-size: 14px !important; font-family: sans-serif !important;
+        /* --- 屏蔽複製出來的固定元素 --- */
+        ${FIXED_HEADER_TABLE_SELECTOR},
+        ${FIXED_HEADER2_TABLE_SELECTOR},
+        ${FIXED_BODY_TABLE_SELECTOR} {
+            display: none !important;
         }
-        #${TOGGLE_BUTTON_ID}:hover { background-color: #0056b3 !important; }
+
+        /* --- 樣式切換按鈕 (放入菜單欄) --- */
+        #${MENU_ID} #${TOGGLE_BUTTON_ID} { /* 限定在 #menu 內的按鈕 */
+            display: inline-block !important; /* 與菜單項並排 */
+            position: relative !important; /* 相對定位，覆蓋 fixed */
+            top: auto !important; /* 移除 top 定位 */
+            left: auto !important; /* 移除 left 定位 */
+            transform: none !important; /* 移除 transform */
+            margin: 2px 8px !important; /* 在菜單項之間添加邊距 */
+            padding: 5px 10px !important; /* 調整內邊距使其接近菜單項 */
+            background-color: #e0e0e0 !important; /* 淺灰色背景，更像按鈕 */
+            color: #333 !important; /* 深色文字 */
+            border: 1px solid #ccc !important; /* 添加邊框 */
+            border-radius: 4px !important;
+            cursor: pointer !important;
+            z-index: 1 !important; /* 在菜單內，不需要太高 z-index */
+            box-shadow: none !important; /* 移除陰影 */
+            font-size: 13px !important; /* 匹配菜單字體大小 */
+            font-family: sans-serif !important;
+            white-space: nowrap !important;
+            vertical-align: middle; /* 垂直居中對齊 */
+            line-height: normal; /* 正常行高 */
+        }
+        #${MENU_ID} #${TOGGLE_BUTTON_ID}:hover {
+            background-color: #d0d0d0 !important; /* 懸停時變深一點 */
+            border-color: #bbb !important;
+        }
+        #${MENU_ID} #${TOGGLE_BUTTON_ID}:active { /* 點擊效果 */
+             background-color: #c0c0c0 !important;
+             border-color: #aaa !important;
+        }
 
         /* --- 取消主表格 thead.normal 的固定 --- */
         #${TABLE_ID} thead.normal { position: static !important; top: auto !important; }
@@ -54,114 +83,56 @@
         #${TABLE_ID} {
             display: table !important; border-collapse: collapse !important; width: 100% !important;
             border: 1px solid #bbb !important; font-family: sans-serif !important; font-size: 13px !important;
-            margin-top: 1em !important; margin-bottom: 1em !important; table-layout: fixed; /* *** 新增：嘗試固定佈局 *** */
+            margin-top: 1em !important; margin-bottom: 1em !important; table-layout: fixed;
         }
 
         #${TABLE_ID} thead { display: table-header-group !important; }
         #${TABLE_ID} tbody { display: table-row-group !important; }
         #${TABLE_ID} tr { display: table-row !important; }
         #${TABLE_ID} th, #${TABLE_ID} td {
-             display: table-cell !important; /* *** 確保是 table-cell *** */
-             word-wrap: break-word; /* *** 新增：允許長內容換行 *** */
+             display: table-cell !important; word-wrap: break-word;
         }
 
         #${TABLE_ID} thead.mobile { display: none !important; }
 
         #${TABLE_ID} th, #${TABLE_ID} td {
-            border: 1px solid #bbb !important; padding: 4px 5px !important; /* 稍微減少 padding */
-            text-align: left !important; vertical-align: middle !important; line-height: 1.3 !important; /* 稍微減小行高 */
+            border: 1px solid #bbb !important; padding: 4px 5px !important;
+            text-align: left !important; vertical-align: middle !important; line-height: 1.3 !important;
         }
 
         #${TABLE_ID} thead.normal th {
             background-color: #e8e8e8 !important; font-weight: bold !important; white-space: nowrap !important;
         }
 
-        /* --- 特定欄位樣式與對齊 (針對 #table) --- */
-        /* NO. 欄 */
-        #${TABLE_ID} thead.normal th:nth-child(1), #${TABLE_ID} tbody td:nth-child(1) {
-            text-align: right !important;
-            width: 3.5em !important; /* 縮小一點 */
-        }
-        /* 區別欄 */
-        #${TABLE_ID} thead.normal th:nth-child(2), #${TABLE_ID} tbody td:nth-child(2) {
-            text-align: center !important;
-            width: 4em !important; /* *** 縮小寬度 *** */
-        }
-        /* 姓名欄 */
-        #${TABLE_ID} thead.normal th:nth-child(3), #${TABLE_ID} tbody td:nth-child(3) {
-            text-align: left !important;
-            width: 5em !important; /* *** 縮小寬度 *** */
-        }
-        /* 性別欄 */
-        #${TABLE_ID} thead.normal th:nth-child(4), #${TABLE_ID} tbody td:nth-child(4) {
-            text-align: center !important;
-            width: 3em !important; /* 縮小一點 */
-        }
+        /* 特定欄位樣式與對齊 (針對 #table) */
+        #${TABLE_ID} thead.normal th:nth-child(1), #${TABLE_ID} tbody td:nth-child(1) { text-align: right !important; width: 3.5em !important; }
+        #${TABLE_ID} thead.normal th:nth-child(2), #${TABLE_ID} tbody td:nth-child(2) { text-align: center !important; width: 4em !important; }
+        #${TABLE_ID} thead.normal th:nth-child(3), #${TABLE_ID} tbody td:nth-child(3) { text-align: left !important; width: 5em !important; }
+        #${TABLE_ID} thead.normal th:nth-child(4), #${TABLE_ID} tbody td:nth-child(4) { text-align: center !important; width: 3em !important; }
 
-        /* Checkbox 相關樣式調整 */
         #${TABLE_ID} td.check-cell, #${TABLE_ID} thead.normal th:has(input.check-all) {
-             text-align: center !important;
-             width: 3em !important; /* Checkbox 列也窄一點 */
-             padding: 3px !important;
+             text-align: center !important; width: 3em !important; padding: 3px !important;
         }
-         #${TABLE_ID} thead.normal th:has(input.check-all) {
-             font-size: 0.9em !important;
-             white-space: normal !important; /* 表頭允許換行 */
-             line-height: 1.2 !important;
-             word-break: keep-all; /* 避免表頭單字內斷行 */
-         }
-         /* *** 移除 td.check-cell 的 flex *** */
-         /* #table tbody td.check-cell { display: table-cell !important; } */ /* 保證是 table-cell */
-
-         /* 注入的標籤樣式 (預設隱藏) */
+         #${TABLE_ID} thead.normal th:has(input.check-all) { font-size: 0.9em !important; white-space: normal !important; line-height: 1.2 !important; word-break: keep-all; }
          #${TABLE_ID} tbody td.check-cell .checkbox-label {
-             display: none; /* 預設不顯示 */
-             margin-right: 3px !important; /* 標籤和 checkbox 間距 */
-             font-size: 0.9em !important;
-             color: #333 !important;
-             font-weight: bold;
-             vertical-align: middle !important; /* 確保垂直對齊 */
+             display: none; margin-right: 3px !important; font-size: 0.9em !important; color: #333 !important; font-weight: bold; vertical-align: middle !important;
          }
-          /* Checkbox 本身樣式 */
-         #${TABLE_ID} tbody td.check-cell input[type="checkbox"] {
-              margin: 0 !important;
-              vertical-align: middle !important; /* 確保垂直對齊 */
-         }
-
+         #${TABLE_ID} tbody td.check-cell input[type="checkbox"] { margin: 0 !important; vertical-align: middle !important; }
 
         /* --- 簡化模式下的樣式 (針對 #table) --- */
-        /* 隱藏 NO. (第一欄) */
         #${TABLE_ID}.${SIMPLIFIED_CLASS} thead.normal th:nth-child(1), #${TABLE_ID}.${SIMPLIFIED_CLASS} tbody td:nth-child(1) { display: none !important; }
-        /* 隱藏 性別 (第四欄) */
         #${TABLE_ID}.${SIMPLIFIED_CLASS} thead.normal th:nth-child(4), #${TABLE_ID}.${SIMPLIFIED_CLASS} tbody td:nth-child(4) { display: none !important; }
 
-        /* 簡化模式下 Checkbox 表頭 & 單元格 */
-        #${TABLE_ID}.${SIMPLIFIED_CLASS} thead.normal th:has(input.check-all) {
-             width: 2.8em !important; /* 可以非常窄 */
-             white-space: nowrap !important;
-             padding: 3px 2px !important; /* 減少左右 padding */
-        }
-         #${TABLE_ID}.${SIMPLIFIED_CLASS} tbody td.check-cell {
-             /* justify-content: flex-start !important; */ /* 移除 flex 屬性 */
-             text-align: left !important; /* 簡化模式下內容靠左 */
-             padding-left: 4px !important;
-             width: auto !important; /* 讓寬度自適應一點，但受 th 影響 */
-         }
-        #${TABLE_ID}.${SIMPLIFIED_CLASS} tbody td.check-cell .checkbox-label {
-             display: inline-block !important; /* 在簡化模式下顯示標籤 (inline-block 更好對齊) */
-        }
-        /* 簡化模式下，Checkbox 稍微右移一點點 */
-         #${TABLE_ID}.${SIMPLIFIED_CLASS} tbody td.check-cell input[type="checkbox"] {
-             margin-left: 2px !important;
-         }
-
+        #${TABLE_ID}.${SIMPLIFIED_CLASS} thead.normal th:has(input.check-all) { width: 2.8em !important; white-space: nowrap !important; padding: 3px 2px !important; }
+         #${TABLE_ID}.${SIMPLIFIED_CLASS} tbody td.check-cell { text-align: left !important; padding-left: 4px !important; width: auto !important; }
+        #${TABLE_ID}.${SIMPLIFIED_CLASS} tbody td.check-cell .checkbox-label { display: inline-block !important; }
+         #${TABLE_ID}.${SIMPLIFIED_CLASS} tbody td.check-cell input[type="checkbox"] { margin-left: 2px !important; }
     `);
 
-    // --- JavaScript 功能函數 (與 v3.2 基本相同) ---
-
-    let originalHeaderTexts = {}; // 只儲存原始文字
-
-    // 更新表頭文字
+    // --- JavaScript 功能函數 (與 v3.3 相同) ---
+    // ... (省略重複的 JS 代碼，請確保包含) ...
+    // <editor-fold desc="v3.3 JS Functions">
+    let originalHeaderTexts = {};
     function updateHeaderTexts(tableElement, simplify) {
         if (!tableElement) return;
         const headerCells = tableElement.querySelectorAll('thead.normal th');
@@ -257,7 +228,6 @@
         });
     }
 
-    // 為 tbody 的 checkbox 單元格添加標籤 (只執行一次)
     function addLabelsToCheckboxCells(tableElement) {
         if (!tableElement) return;
         const bodyRows = tableElement.querySelectorAll('tbody#members tr.member');
@@ -290,24 +260,29 @@
          console.log("Labels added to checkbox cells.");
     }
 
-
-    // 更新按鈕文字
     function updateButtonText(button, isSimplified) {
         button.textContent = isSimplified ? '顯示完整表格' : '簡化表格顯示';
     }
+    // </editor-fold>
 
-    // --- 主邏輯 (與 v3.2 相同) ---
+    // --- 主邏輯 (修改按鈕添加位置) ---
     const table = document.getElementById(TABLE_ID);
-    if (table) {
+    const menuDiv = document.getElementById(MENU_ID); // *** 獲取菜單欄元素 ***
+
+    if (table && menuDiv) { // *** 確保表格和菜單欄都存在 ***
          const normalThead = table.querySelector('thead.normal');
          if (!normalThead) { console.error('找不到 #table thead.normal'); return; }
 
+         // 創建按鈕
          const toggleButton = document.createElement('button');
          toggleButton.id = TOGGLE_BUTTON_ID;
-         document.body.appendChild(toggleButton);
+         // *** 將按鈕添加到菜單欄末尾 ***
+         menuDiv.appendChild(toggleButton);
 
+         // 讀取偏好
          let isSimplified = GM_getValue(STORAGE_KEY, false);
 
+         // 初始化
          updateHeaderTexts(table, false);
          addLabelsToCheckboxCells(table);
 
@@ -319,6 +294,7 @@
          }
          updateButtonText(toggleButton, isSimplified);
 
+         // 按鈕事件
          toggleButton.addEventListener('click', () => {
              isSimplified = !isSimplified;
              table.classList.toggle(SIMPLIFIED_CLASS, isSimplified);
@@ -327,6 +303,8 @@
              updateButtonText(toggleButton, isSimplified);
          });
     } else {
-        console.warn(`無法找到 ID 為 "${TABLE_ID}" 的主表格。`);
+         if (!table) console.warn(`無法找到 ID 為 "${TABLE_ID}" 的主表格。`);
+         if (!menuDiv) console.warn(`無法找到 ID 為 "${MENU_ID}" 的菜單欄。按鈕將不會被添加。`);
     }
+
 })();
