@@ -3,8 +3,9 @@
 // @namespace    http://tampermonkey.net/
 // @version      2.0
 // @description  上傳 CSV 檔案，自動遍歷所有分頁，根據檔案內容勾選點名項目。
-// @author       AI Assistant & Your Name
+// @author       AI Assistant & Fisher Li
 // @match        https://www.chlife-stat.org/index.php
+// @match        https://www.chlife-stat.org/
 // @require      https://code.jquery.com/jquery-3.6.0.min.js
 // @require      https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js
 // @grant        GM_addStyle
