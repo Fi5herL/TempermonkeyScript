@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         報表頁面 - 自動匯出各會所選定項目資料 v2.4 (指定預設項目)
+// @name         匯出各會所指定聚會資料
 // @namespace    http://tampermonkey.net/
 // @version      2.4
 // @description  自動逐一勾選單一會所，匯出選定年份的指定項目資料(可由使用者設定，預設勾選特定項目)，遍歷所有會所，並生成匯出紀錄CSV。
