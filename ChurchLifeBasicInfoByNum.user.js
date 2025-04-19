@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         召會生活 自動單選匯出基本資料 (v4.2 - CSV增檔名)
+// @name         依會所匯出基本資料
 // @namespace    http://tampermonkey.net/
 // @version      4.2
 // @description  無確認框。先取消全選，再依序單選(點擊<a>)並匯出，按鈕在匯出鈕旁。CSV增加原始檔名欄。
