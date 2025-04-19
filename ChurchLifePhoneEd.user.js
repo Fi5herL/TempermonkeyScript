@@ -96,9 +96,7 @@
         /* 固定第 1 欄 (NO.) */
         #${TABLE_ID} thead.normal th:nth-child(1),
         #${TABLE_ID} tbody td:nth-child(1) {
-            position: sticky !important;
-            left: 0px !important; /* 固定在最左側 */
-            width: 3.5em !important; /* 保持寬度定義 */
+            width: auto !important; /* 保持寬度定義 */
             text-align: right !important;
             z-index: 2 !important;
             background-color: white !important;
@@ -110,9 +108,7 @@
         /* 固定第 2 欄 (區別) */
         #${TABLE_ID} thead.normal th:nth-child(2),
         #${TABLE_ID} tbody td:nth-child(2) {
-            position: sticky !important;
-            left: 2em !important; /* *** 左側偏移量 = 第 1 欄的寬度 *** */
-            width: 4em !important; /* 保持寬度定義 */
+            width: auto !important; /* 保持寬度定義 */
             text-align: center !important;
             z-index: 2 !important;
             background-color: white !important;
@@ -125,8 +121,8 @@
         #${TABLE_ID} thead.normal th:nth-child(3),
         #${TABLE_ID} tbody td:nth-child(3) {
             position: sticky !important;
-            left: 3.5em !important; /* *** 左側偏移量 = 第 1 欄寬 (3.5em) + 第 2 欄寬 (4em) *** */
-            width: 4em !important; /* 保持寬度定義 */
+            left: 0px !important; /* 固定在最左側 */
+            width: 3.5em !important; /* 保持寬度定義 */
             text-align: left !important;
             z-index: 2 !important;
             background-color: white !important;
