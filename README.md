@@ -3,9 +3,10 @@ TemperMonkey Scripts
 
 - Active for [https://www.chlife-stat.org/](https://www.chlife-stat.org/) for MTG reports download.
    - 👤[ChurchLifeBasicInfoByNum.user.js](https://github.com/Fi5herL/TempermonkeyScript/raw/refs/heads/main/ChurchLifeBasicInfoByNum.user.js) 依會所匯出基本資料
-   - ⚙️[ChurchLifeYearByNumByMTG.user.js](https://github.com/Fi5herL/TempermonkeyScript/raw/refs/heads/main/ChurchLifeYearByNumByMTG.user.js)
-   - [ChurchLifeFullYearReportDownload.user.js](https://github.com/Fi5herL/TempermonkeyScript/raw/refs/heads/main/ChurchLifeFullYearReportDownload.user.js)
-   - [ChurchLifeWeekReportDownload.user.js](https://github.com/Fi5herL/TempermonkeyScript/raw/refs/heads/main/ChurchLifeWeekReportDownload.user.js)
+   - ⚙️[ChurchLifeYearByNumByMTG.user.js](https://github.com/Fi5herL/TempermonkeyScript/raw/refs/heads/main/ChurchLifeYearByNumByMTG.user.js) 匯出各會所指定全年聚會資料
+   - [ChurchLifeFullYearReportDownload.user.js](https://github.com/Fi5herL/TempermonkeyScript/raw/refs/heads/main/ChurchLifeFullYearReportDownload.user.js) 匯出全年全部聚會資料
+   - [ChurchLifeWeekReportCSVDownload.user.js](https://github.com/Fi5herL/TempermonkeyScript/raw/refs/heads/main/ChurchLifeWeekReportCSVDownload.user.js) 下載CSV分頁點名檔(當周)
+   - [ChurchLifeWeekReportCSVUploadRollCall.user.js](https://github.com/Fi5herL/TempermonkeyScript/raw/refs/heads/main/ChurchLifeWeekReportCSVUploadRollCall.user.js) 上傳CSV自動點名
 
 - Active for Clock in/out system [Login-site](https://fa-eups-saasfaprod1.fa.ocs.oraclecloud.com/) for auto clock-in/out work days
    - [ClockInOutAutomation]()
