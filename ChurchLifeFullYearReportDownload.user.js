@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         報表頁面 - 匯出全年聚會資料
+// @name         匯出全年全部聚會資料
 // @namespace    http://tampermonkey.net/
 // @version      1.0
 // @description  在聚會資料報表頁面添加按鈕，自動匯出選定年份內所有聚會類型的1-12月資料。
