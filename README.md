@@ -2,7 +2,7 @@
 TemperMonkey Scripts
 
 - Active for [https://www.chlife-stat.org/](https://www.chlife-stat.org/) for MTG reports download.
-   - 👤[ChurchLifeBasicInfoByNum.user.js](https://github.com/Fi5herL/TempermonkeyScript/raw/refs/heads/main/ChurchLifeBasicInfoByNum.user.js)
+   - 👤[ChurchLifeBasicInfoByNum.user.js](https://github.com/Fi5herL/TempermonkeyScript/raw/refs/heads/main/ChurchLifeBasicInfoByNum.user.js) 依會所匯出基本資料
    - ⚙️[ChurchLifeYearByNumByMTG.user.js](https://github.com/Fi5herL/TempermonkeyScript/raw/refs/heads/main/ChurchLifeYearByNumByMTG.user.js)
    - [ChurchLifeFullYearReportDownload.user.js](https://github.com/Fi5herL/TempermonkeyScript/raw/refs/heads/main/ChurchLifeFullYearReportDownload.user.js)
    - [ChurchLifeWeekReportDownload.user.js](https://github.com/Fi5herL/TempermonkeyScript/raw/refs/heads/main/ChurchLifeWeekReportDownload.user.js)
