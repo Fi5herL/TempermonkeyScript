@@ -1,4 +1,4 @@
-# TempermonkeyScript 🐒
+# TempermonkeyScript 🐵
 TemperMonkey Scripts
 
 - Active for [https://www.chlife-stat.org/](https://www.chlife-stat.org/) for MTG reports download.
