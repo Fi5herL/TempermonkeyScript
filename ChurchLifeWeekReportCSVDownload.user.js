@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         人數統計下載按鈕 (菜單+日期檔名+多頁合併 V1.1.2)
+// @name         下載CSV分頁點名檔
 // @namespace    http://tampermonkey.net/
 // @version      1.1.2
 // @description  在主菜單添加下載按鈕(含日期檔名),點擊後合併所有分頁數據下載CSV
