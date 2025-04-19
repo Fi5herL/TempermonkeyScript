@@ -111,7 +111,7 @@
         #${TABLE_ID} thead.normal th:nth-child(2),
         #${TABLE_ID} tbody td:nth-child(2) {
             position: sticky !important;
-            left: 3.5em !important; /* *** 左側偏移量 = 第 1 欄的寬度 *** */
+            left: 2em !important; /* *** 左側偏移量 = 第 1 欄的寬度 *** */
             width: 4em !important; /* 保持寬度定義 */
             text-align: center !important;
             z-index: 2 !important;
@@ -125,7 +125,7 @@
         #${TABLE_ID} thead.normal th:nth-child(3),
         #${TABLE_ID} tbody td:nth-child(3) {
             position: sticky !important;
-            left: 7.5em !important; /* *** 左側偏移量 = 第 1 欄寬 (3.5em) + 第 2 欄寬 (4em) *** */
+            left: 3.5em !important; /* *** 左側偏移量 = 第 1 欄寬 (3.5em) + 第 2 欄寬 (4em) *** */
             width: 4em !important; /* 保持寬度定義 */
             text-align: left !important;
             z-index: 2 !important;
