@@ -100,7 +100,7 @@
         #${TABLE_ID} tbody td:nth-child(2) {
             position: sticky !important;
             left: 0px !important; /* *** 固定在最左側 *** */
-            width: 3em !important; /* 保持寬度定義 */
+            width: 2em !important; /* 保持寬度定義 */
             text-align: center !important;
             z-index: 2 !important; /* 層級高於普通單元格 */
         }
@@ -116,8 +116,8 @@
         #${TABLE_ID} thead.normal th:nth-child(3),
         #${TABLE_ID} tbody td:nth-child(3) {
             position: sticky !important;
-            left: 4em !important; /* *** 左側偏移量 = 第 2 欄的寬度 *** */
-            width: 4em !important; /* 保持寬度定義 */
+            left: 0em !important; /* *** 左側偏移量 = 第 2 欄的寬度 *** */
+            width: 2em !important; /* 保持寬度定義 */
             text-align: left !important;
             z-index: 2 !important; /* 層級高於普通單元格 */
         }
