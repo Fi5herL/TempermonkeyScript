@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         手機點名模式RWD
+// @name         表格樣式切換器 (v4.1 - 僅簡化模式固定姓名欄)
 // @namespace    http://tampermonkey.net/
 // @version      4.1
 // @description  強制替換 #table 樣式，屏蔽固定元素，按鈕置頂中，僅簡化模式固定姓名欄，隱藏表頭勾選，並提供按鈕切換簡化顯示。
@@ -126,7 +126,7 @@
         #${TABLE_ID}.${SIMPLIFIED_CLASS} tbody td:nth-child(3) {
             position: sticky !important;
             /* left: 4em !important;  */ /* 因為第2欄(區別)在簡化模式下 *不* 固定了，所以姓名欄固定在最左邊 */
-            left: 20px !important; /* *** 修正：固定在最左邊 *** */
+            left: 0px !important; /* *** 修正：固定在最左邊 *** */
             text-align: right !important;
             z-index: 2 !important;
             background-color: white !important; /* 確保背景不透明 */
