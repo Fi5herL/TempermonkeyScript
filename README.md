@@ -6,7 +6,7 @@ TemperMonkey Scripts
    - ⚙️[ChurchLifeYearByNumByMTG.user.js](https://github.com/Fi5herL/TempermonkeyScript/raw/refs/heads/main/ChurchLifeYearByNumByMTG.user.js) 匯出各會所指定全年聚會資料
    - [ChurchLifeFullYearReportDownload.user.js](https://github.com/Fi5herL/TempermonkeyScript/raw/refs/heads/main/ChurchLifeFullYearReportDownload.user.js) 匯出全年全部聚會資料
    - [ChurchLifeWeekReportCSVDownload.user.js](https://github.com/Fi5herL/TempermonkeyScript/raw/refs/heads/main/ChurchLifeWeekReportCSVDownload.user.js) 下載CSV分頁點名檔(當周)
-   - [ChurchLifeWeekReportCSVUploadRollCall.user.js](https://github.com/Fi5herL/TempermonkeyScript/raw/refs/heads/main/ChurchLifeWeekReportCSVUploadRollCall.user.js) 上傳CSV自動點名(當周)
+   - [ChurchLifeWeekReportCSVUploadRollCall.user.js](https://github.com/Fi5herL/TempermonkeyScript/raw/refs/heads/main/ChurchLifeWeekReportCSVUploadRollCall.user.js) 上傳CSV自動點名(當周) ⚠️會修改到點名資訊
 
 - Active for Clock in/out system [Login-site](https://fa-eups-saasfaprod1.fa.ocs.oraclecloud.com/) for auto clock-in/out work days
    - [ClockInOutAutomation]()
