@@ -261,7 +261,7 @@ Sub MergeSpecificExcelFiles_And_Process_V3() ' 再改個版本號
 
                         ' 計算來源表的數據範圍
                         sourceLastRow = secondarySheet.Cells(secondarySheet.Rows.Count, "A").End(xlUp).Row ' 基於 A 列
-                        sourceLastCol = secondarySheet.Cells(1, secondarySheet.Columns.Count).End(xlToLeft).Column ' 基於第1行
+                        sourceLastCol = secondarySheet.Cells(2, secondarySheet.Columns.Count).End(xlToLeft).Column ' 基於第2行，因為第一行為合併儲存格
                         If sourceLastCol < 1 Then sourceLastCol = 1
 
                         ' 如果來源表有數據 (第3行及以後)
