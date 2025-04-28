@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         依會所匯出基本資料
+// @name         匯出基本資料 (v4.3 - 配合VBA腳本版)
 // @namespace    http://tampermonkey.net/
 // @version      4.2
 // @description  無確認框。先取消全選，再依序單選(點擊<a>)並匯出，按鈕在匯出鈕旁。CSV增加原始檔名欄。
@@ -53,14 +53,14 @@
         try {
             GM_download({
                 url: 'data:text/csv;charset=utf-8,' + encodeURIComponent(csvContent),
-                name: `會所匯出紀錄_${new Date().toISOString().slice(0,10)}.csv`, saveAs: true,
+                name: `匯出基本資料_${new Date().toISOString().slice(0,10)}.csv`, saveAs: true,
                 onload: () => { log(`CSV 紀錄檔下載請求已發送 (GM_download)。共 ${exportLog.length} 筆紀錄。`); },
                 onerror: (error) => { errorLog("GM_download 失敗:", error); alert(`CSV 下載失敗 (GM_download): ${error.error}\n嘗試備用方法。`); fallbackDownload(csvContent); }
             });
         } catch (e) { errorLog("GM_download 不可用，嘗試 FileSaver:", e); fallbackDownload(csvContent); }
     }
     function fallbackDownload(csvContent) {
-        try { if (typeof saveAs === 'function') { const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' }); saveAs(blob, `會所匯出紀錄_${new Date().toISOString().slice(0,10)}.csv`); log(`CSV 紀錄檔下載請求已發送 (FileSaver)。共 ${exportLog.length} 筆紀錄。`); } else { errorLog("FileSaver.js 未載入"); alert("無法觸發CSV下載(備用)。"); console.log("--- CSV:\n", csvContent); }
+        try { if (typeof saveAs === 'function') { const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' }); saveAs(blob, `匯出基本資料_${new Date().toISOString().slice(0,10)}.csv`); log(`CSV 紀錄檔下載請求已發送 (FileSaver)。共 ${exportLog.length} 筆紀錄。`); } else { errorLog("FileSaver.js 未載入"); alert("無法觸發CSV下載(備用)。"); console.log("--- CSV:\n", csvContent); }
         } catch(err) { errorLog("FileSaver 下載失敗:", err); alert("CSV下載失敗(備用)。"); console.log("--- CSV:\n", csvContent); }
     }
 
