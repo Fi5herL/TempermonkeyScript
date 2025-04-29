@@ -23,7 +23,7 @@ TemperMonkey Scripts
    6. 下載完畢開一個新資料夾將所有聚會資料連同CSV目入移入
    7. (基本資料下載)接著進入 **"匯入/匯出"** 頁面點選 **開始自動匯出**，等待檔案完全下載
    8. 下載完畢開一個新資料夾將所有基本資料連同CSV目入移入
-   9. (資料合併)請開啟CHLifeMergeV2.2(MTG BasicInfo and Verify Code Merge).xlsm合併所有資料並儲存
+   9. (資料合併)請開啟[CHLifeMergeV2.2](https://github.com/Fi5herL/TempermonkeyScript/blob/main/CHLifeMergeV2.2(MTG%20BasicInfo%20and%20Verify%20Code%20Merge).xlsm)合併所有資料並儲存
 
 ## Install Steps 👟
 
