@@ -18,10 +18,10 @@ TemperMonkey Scripts
    1. 依照Install Steps安裝油猴
    2. 安裝插件[ChurchLifeBasicInfoByNum.user.js](https://github.com/Fi5herL/TempermonkeyScript/raw/refs/heads/main/ChurchLifeBasicInfoByNum.user.js) 與 [ChurchLifeYearByNumByMTG.user.js](https://github.com/Fi5herL/TempermonkeyScript/raw/refs/heads/main/ChurchLifeYearByNumByMTG.user.js)
    3. 登入[人數統計表網站](https://www.chlife-stat.org/)
-   4. (聚會資料下載)進到 ** "報表" > "聚會資料" ** 頁面點選⚙️選擇要匯出的聚會選項
-   5. 接著點選 ** "匯出各會所項目(逐一)⚙️ " **，等待檔案完全下載
+   4. (聚會資料下載)進到 **"報表"** > **"聚會資料"** 頁面點選**⚙️**選擇要匯出的聚會選項
+   5. 接著點選 **"匯出各會所項目(逐一)⚙️"**，等待檔案完全下載
    6. 下載完畢開一個新資料夾將所有聚會資料連同CSV目入移入
-   7. (基本資料下載)接著進入 ** "匯入/匯出" ** 頁面點選 ** 開始自動匯出 **，等待檔案完全下載
+   7. (基本資料下載)接著進入 **"匯入/匯出"** 頁面點選 **開始自動匯出**，等待檔案完全下載
    8. 下載完畢開一個新資料夾將所有基本資料連同CSV目入移入
    9. (資料合併)請開啟CHLifeMergeV2.2(MTG BasicInfo and Verify Code Merge).xlsm合併所有資料並儲存
 
