@@ -18,12 +18,14 @@
     const LINES_AFTER = 0;
     const DEBUG = true;
     const MAX_CONTENT_LENGTH_NON_TABLE = 3000; // 非表格內容的最大長度
+    const DELAY_BEFORE_SHOWING_PREVIEW = 500; // 滑鼠懸停後延遲顯示預覽的時間 (毫秒)
 
     // --- 全局變量 ---
     const PREVIEW_DIV_ID = 'userscript-internal-link-preview-div';
     let previewDiv = null;
     let currentHoveredLink = null;
     let hidePreviewTimeout = null;
+    let showPreviewTimeout = null; // 新增：用於延遲顯示預覽的計時器
 
     function log(...args) {
         if (DEBUG) {
@@ -39,7 +41,6 @@
     log("腳本開始運行。當前頁面/iframe:", window.location.href);
 
     function createPreviewDiv() {
-        // ... (與版本 2025-05-23.2 相同，為簡潔省略)
         if (document.getElementById(PREVIEW_DIV_ID)) {
             previewDiv = document.getElementById(PREVIEW_DIV_ID);
             return;
@@ -53,7 +54,7 @@
             color: '#333',
             padding: '12px',
             zIndex: '2147483647',
-            maxWidth: '85vw', // 再次增大以適應複雜表格
+            maxWidth: '85vw',
             maxHeight: '80vh',
             overflow: 'auto',
             fontSize: '13px',
@@ -76,13 +77,12 @@
     }
 
     function showPreview(htmlContent, event) {
-        // ... (與版本 2025-05-23.2 相同，為簡潔省略)
         if (!previewDiv) createPreviewDiv();
         if (!previewDiv) {
             log("錯誤：預覽框創建失敗。");
             return;
         }
-        if (hidePreviewTimeout) clearTimeout(hidePreviewTimeout);
+        if (hidePreviewTimeout) clearTimeout(hidePreviewTimeout); // 清除可能存在的隱藏計時器
         hidePreviewTimeout = null;
 
         previewDiv.innerHTML = htmlContent;
@@ -102,113 +102,72 @@
     }
 
     function hidePreview() {
-        // ... (與版本 2025-05-23.2 相同，為簡潔省略)
         if (previewDiv && previewDiv.style.display !== 'none') {
             previewDiv.style.display = 'none';
         }
-        currentHoveredLink = null;
+        currentHoveredLink = null; // 重置當前懸停連結
         if (hidePreviewTimeout) clearTimeout(hidePreviewTimeout);
         hidePreviewTimeout = null;
+        if (showPreviewTimeout) { // 如果有正在等待顯示的計時器，也一併清除
+            clearTimeout(showPreviewTimeout);
+            showPreviewTimeout = null;
+        }
     }
 
     function delayedHidePreview(delay = 300) {
-        // ... (與版本 2025-05-23.2 相同，為簡潔省略)
         if (hidePreviewTimeout) clearTimeout(hidePreviewTimeout);
         hidePreviewTimeout = setTimeout(() => {
-            if (previewDiv && previewDiv.matches(':hover')) return;
+            if (previewDiv && previewDiv.matches(':hover')) return; // 如果滑鼠在預覽框內，則不隱藏
             hidePreview();
         }, delay);
     }
 
-    /**
-     * 嘗試找到與 targetElement 相關聯的完整表格。
-     * 1. 如果 targetElement 本身是 table，返回它。
-     * 2. 如果 targetElement 在 table 內部，返回最近的 table 祖先。
-     * 3. 如果 targetElement 的直接子元素是 table (且只有一個 table)，返回該 table。
-     * 4. 如果 targetElement 的下一個兄弟是 table，返回該 table。 (可選，看需求)
-     * 5. 如果 targetElement 的前一個兄弟是 table 且 targetElement 是個簡單標題，返回該 table。 (可選)
-     * @param {Element} targetElement - 連結指向的原始目標元素。
-     * @returns {Element|null} - 找到的表格元素，或 null。
-     */
     function findRelatedTable(targetElement) {
         if (!targetElement) return null;
-
-        // 情況 1: targetElement 本身就是 table
         if (targetElement.tagName === 'TABLE') {
             log("findRelatedTable: targetElement is a TABLE.");
             return targetElement;
         }
-
-        // 情況 2: targetElement 在 table 內部
         const closestTable = targetElement.closest('table');
         if (closestTable) {
             log("findRelatedTable: targetElement is inside a TABLE (closest).");
             return closestTable;
         }
-
-        // 情況 3: targetElement 的直接子元素中包含 table
-        // 我們特別關注 targetElement 是否是一個簡單的容器，其主要內容是表格
         const childTables = Array.from(targetElement.children).filter(child => child.tagName === 'TABLE');
         if (childTables.length === 1) {
-            // 如果只有一個子表格，且父元素沒有太多其他複雜內容，可以考慮返回這個子表格
-            // 這裡的判斷可以更複雜，例如檢查父元素是否除了這個表格外幾乎沒有其他可見內容
             log("findRelatedTable: targetElement contains one child TABLE.");
             return childTables[0];
         }
         if (childTables.length > 1) {
              log("findRelatedTable: targetElement contains multiple child TABLEs. Returning targetElement itself for now.");
-             return targetElement; // 或者返回第一個表格 childTables[0]
+             return targetElement;
         }
-
-
-        // 情況 4: targetElement 的下一個兄弟元素是 table
-        // 有時錨點可能在表格緊鄰的前一個元素上 (例如一個標題 <p id="foo"></p><table>...</table>)
         const nextSibling = targetElement.nextElementSibling;
         if (nextSibling && nextSibling.tagName === 'TABLE') {
-            // 確保 targetElement 內容不多，否則可能不相關
-            if (targetElement.textContent.trim().length < 100) { // 隨意設定一個閾值
+            if (targetElement.textContent.trim().length < 100) {
                  log("findRelatedTable: nextElementSibling is a TABLE.");
                  return nextSibling;
             }
         }
-
-        // 如果以上都沒找到特定關聯的表格，就返回原始 targetElement
-        // getElementHtmlContent 會處理 targetElement 本身是否包含需要特殊處理的表格
         log("findRelatedTable: No clearly related single table found by structure, returning original targetElement.");
         return targetElement;
     }
 
-
-    /**
-     * 獲取元素的 HTML 內容。
-     * 如果是表格，獲取 outerHTML 且不截斷。
-     * 否則，獲取 innerHTML，清理並截斷。
-     * @param {Element} element - 要處理的元素 (可能是原始 targetElement，也可能是 findRelatedTable 返回的表格)
-     * @returns {string}
-     */
     function getElementHtmlContent(element) {
         if (!element) return "";
-
         let html;
-        let isConsideredTable = false; // 標記是否按表格方式處理 (即不截斷)
-
+        let isConsideredTable = false;
         if (element.tagName === 'TABLE') {
             isConsideredTable = true;
             html = element.outerHTML;
             log("getElementHtmlContent: Element is TABLE, using outerHTML.");
         } else {
-            // 對於非 TABLE 元素，我們仍然檢查其內部是否包含表格
-            // 但主要的截斷邏輯是針對非表格內容的
             html = element.innerHTML;
             log("getElementHtmlContent: Element is not TABLE, using innerHTML.");
         }
-
-        // 清理 script, style, comments，這對所有內容都適用
         html = html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "");
         html = html.replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, "");
         html = html.replace(/<!--[\s\S]*?-->/g, "");
-
-        // 僅當不是按表格方式處理時，才進行長度截斷
         if (!isConsideredTable && html.length > MAX_CONTENT_LENGTH_NON_TABLE) {
             log(`getElementHtmlContent: Content too long (${html.length}), truncating.`);
             let cutPoint = html.lastIndexOf('>', MAX_CONTENT_LENGTH_NON_TABLE);
@@ -223,38 +182,25 @@
 
     function getElementContext(initialTargetElement) {
         let contextParts = [];
-
         const styleSubHeading = "font-weight: bold; color: #555; margin-top: 8px; margin-bottom: 4px; display: block; border-bottom: 1px solid #eee; padding-bottom: 3px;";
         const styleTargetContainer = "border: 1px solid #ccc; padding: 10px; margin: 5px 0; display: block; overflow: auto; background-color: #f9f9f9;";
-
-        // --- 智能查找要顯示的主要元素 (可能是表格) ---
         let displayElement = findRelatedTable(initialTargetElement);
-        if (!displayElement) { // 如果 findRelatedTable 返回 null (理論上不應該，至少返回 initialTargetElement)
+        if (!displayElement) {
             log("Error: findRelatedTable returned null. Defaulting to initialTargetElement.");
             displayElement = initialTargetElement;
         }
-
         log(`getElementContext: Initial target is #${initialTargetElement.id}, displayElement is ${displayElement.tagName}#${displayElement.id || '(no id)'}`);
-
-        // --- 獲取主要顯示元素的內容 ---
         const mainContentHtml = getElementHtmlContent(displayElement);
-
         contextParts.push(`<div style="${styleSubHeading}">--- 預覽內容 (ID: ${initialTargetElement.id || '無ID'}) ---</div>`);
         contextParts.push(`<div style="${styleTargetContainer}">${mainContentHtml || '(無可顯示內容)'}</div>`);
-
-        // 前文和後文的邏輯 (LINES_BEFORE/AFTER 為 0 時不執行)
-        // 如果需要顯示前文/後文，它們應該是相對於 initialTargetElement 的，而不是 displayElement
         let currentSibling;
         if (LINES_BEFORE > 0) {
             let beforeElementsHtml = [];
             currentSibling = initialTargetElement.previousElementSibling;
             for (let i = 0; i < LINES_BEFORE && currentSibling; i++) {
-                // 確保前文/後文的元素不是我們已經顯示的 displayElement (如果 displayElement 是 initialTargetElement 的兄弟)
                 if (currentSibling !== displayElement) {
-                    const htmlSnippet = getElementHtmlContent(currentSibling); // 前後文也用 getElementHtmlContent
-                    if (htmlSnippet.trim()) {
-                        beforeElementsHtml.unshift(htmlSnippet);
-                    }
+                    const htmlSnippet = getElementHtmlContent(currentSibling);
+                    if (htmlSnippet.trim()) beforeElementsHtml.unshift(htmlSnippet);
                 }
                 currentSibling = currentSibling.previousElementSibling;
             }
@@ -263,16 +209,13 @@
                 contextParts.unshift(`<div style="${styleSubHeading}">--- 前文 (${beforeElementsHtml.length} 個兄弟元素) ---</div>`);
             }
         }
-
         if (LINES_AFTER > 0) {
             let afterElementsHtml = [];
             currentSibling = initialTargetElement.nextElementSibling;
             for (let i = 0; i < LINES_AFTER && currentSibling; i++) {
                 if (currentSibling !== displayElement) {
                     const htmlSnippet = getElementHtmlContent(currentSibling);
-                    if (htmlSnippet.trim()) {
-                        afterElementsHtml.push(htmlSnippet);
-                    }
+                    if (htmlSnippet.trim()) afterElementsHtml.push(htmlSnippet);
                 }
                 currentSibling = currentSibling.nextElementSibling;
             }
@@ -281,58 +224,99 @@
                 contextParts.push(`<div style="margin-bottom: 5px; padding-bottom: 5px; border-bottom: 1px dotted #ddd; overflow: auto;">${afterElementsHtml.join('<hr style="border:none;border-top:1px dotted #ddd;margin:5px 0;">')}</div>`);
             }
         }
-
-
-        if (!mainContentHtml.trim() && contextParts.length <= 2) { // 檢查是否真的沒有任何有效內容
+        if (!mainContentHtml.trim() && contextParts.length <= 2) {
              return "連結目標及其上下文均無可顯示的內容。";
         }
-
         return contextParts.join('');
     }
 
-
     // --- 事件監聽器 ---
     document.addEventListener('mouseover', function(event) {
-        // ... (與版本 2025-05-23.2 相同，為簡潔省略，僅修改日誌)
         const aTag = event.target.closest('a');
 
         if (aTag && aTag.href) {
+            // 如果滑鼠在預覽框內，則不處理連結懸停
             if (previewDiv && previewDiv.contains(event.target)) return;
+
+            // 如果滑鼠仍在當前已顯示預覽的連結上，則清除隱藏計時器並返回
             if (aTag === currentHoveredLink && previewDiv && previewDiv.style.display === 'block') {
                  if (hidePreviewTimeout) clearTimeout(hidePreviewTimeout);
                  hidePreviewTimeout = null;
                  return;
             }
 
+            // 清除之前可能存在的顯示計時器 (處理快速移動到新連結的情況)
+            if (showPreviewTimeout) {
+                clearTimeout(showPreviewTimeout);
+                showPreviewTimeout = null;
+            }
+
             try {
                 const url = new URL(aTag.href, window.location.href);
+                // 僅處理頁內錨點連結
                 if (url.hash && url.origin === window.location.origin && url.pathname === window.location.pathname) {
                     const targetId = decodeURIComponent(url.hash.substring(1));
                     if (!targetId) return;
 
                     const targetElement = document.getElementById(targetId);
                     if (targetElement) {
-                        log(`Mouseover on link to #${targetId}. Initial target element: ${targetElement.tagName}`);
-                        currentHoveredLink = aTag;
-                        const contextText = getElementContext(targetElement); // 傳入原始錨點元素
-                        showPreview(contextText, event);
+                        log(`Mouseover on link to #${targetId}. Scheduling preview in ${DELAY_BEFORE_SHOWING_PREVIEW}ms.`);
+                        currentHoveredLink = aTag; // 立即更新當前懸停的連結
+
+                        // 捕獲事件對象，以便在計時器回調中使用正確的滑鼠位置
+                        const capturedEvent = event;
+
+                        // 設置延遲顯示
+                        showPreviewTimeout = setTimeout(() => {
+                            // 在計時器觸發時，再次確認滑鼠是否還在目標連結上
+                            // （雖然 mouseout 應該已經清除了計時器，但這是一個額外的保險）
+                            if (currentHoveredLink !== aTag) {
+                                log(`Timer for #${targetId} expired, but mouse is no longer on the link. Aborting.`);
+                                return;
+                            }
+                            log(`Timer expired for #${targetId}. Fetching content and showing preview.`);
+                            const contextText = getElementContext(targetElement);
+                            showPreview(contextText, capturedEvent); // 使用捕獲的事件對象
+                        }, DELAY_BEFORE_SHOWING_PREVIEW);
+
                     } else {
                          log("目標元素未找到: #" + targetId + " 在文檔:", window.location.href);
+                         // 如果目標元素未找到，我們可能需要清除 currentHoveredLink，如果它是這個無效的 aTag
+                         if (currentHoveredLink === aTag) currentHoveredLink = null;
                     }
+                } else {
+                    // 如果不是頁內連結，且之前 currentHoveredLink 指向它，現在移開了，則清空
+                     if (currentHoveredLink === aTag) currentHoveredLink = null;
                 }
             } catch (e) {
                 log("處理連結 mouseover 錯誤:", e, "對於連結:", aTag.href);
+                if (currentHoveredLink === aTag) currentHoveredLink = null;
             }
         }
     }, true);
 
     document.addEventListener('mouseout', function(event) {
-        // ... (與版本 2025-05-23.2 相同，為簡潔省略)
         const aTag = event.target.closest('a');
+
+        // 只處理當滑鼠移出的是當前我們正在追蹤的連結
         if (aTag && aTag === currentHoveredLink) {
-            if (event.relatedTarget !== previewDiv && (!previewDiv || !previewDiv.contains(event.relatedTarget))) {
-                delayedHidePreview();
+            // 清除延遲顯示的計時器 (如果存在且尚未觸發)
+            if (showPreviewTimeout) {
+                clearTimeout(showPreviewTimeout);
+                showPreviewTimeout = null;
+                log(`Mouseout from link #${aTag.hash ? decodeURIComponent(aTag.hash.substring(1)) : aTag.href}, cleared showPreviewTimeout.`);
             }
+
+            // 如果預覽框已顯示，且滑鼠不是移到預覽框本身，則延遲隱藏預覽框
+            if (previewDiv && previewDiv.style.display !== 'none') { // 確保 previewDiv 存在且可見
+                 if (event.relatedTarget !== previewDiv && (!previewDiv.contains(event.relatedTarget))) {
+                    delayedHidePreview();
+                }
+            }
+            // 注意：currentHoveredLink 的重置主要由 hidePreview 或 delayedHidePreview 裡的 hidePreview 處理
+            // 或者在 mouseover 到一個新連結時被覆蓋。
+            // 如果只是移出，計時器被取消，但預覽還沒顯示，currentHoveredLink 可能暫時保留，
+            // 直到 mouseover 新連結或 preview 被正式隱藏。
         }
     }, true);
 
