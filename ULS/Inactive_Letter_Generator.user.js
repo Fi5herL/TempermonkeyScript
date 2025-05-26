@@ -186,8 +186,8 @@ Field Sales /Email:`
 順祝
 商祺
 
-Field Sales /Email:                                       Project Handler /Email:
-Sales Manager /Email:                                Engineer Manager /Email:`
+Field Sales /Email:       Project Handler /Email:
+Sales Manager /Email:       Engineer Manager /Email:`
         }
     ];
 
