@@ -4,7 +4,7 @@
 // @version      1.2
 // @description  在右下角顯示網頁中特定貨幣金額的加總(USD)，點擊可看詳情與換算公式。
 // @author       Fisher Li
-// @match        https://portal.ul.com/*
+// @match        https://portal.ul.com/Dashboard*
 // @grant        GM_xmlhttpRequest
 // @connect      cdn.jsdelivr.net
 // @connect      gh.fawazahmed0.com
