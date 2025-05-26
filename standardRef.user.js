@@ -18,7 +18,7 @@
     const LINES_AFTER = 0;
     const DEBUG = true;
     const MAX_CONTENT_LENGTH_NON_TABLE = 3000; // 非表格內容的最大長度
-    const DELAY_BEFORE_SHOWING_PREVIEW = 500; // 滑鼠懸停後延遲顯示預覽的時間 (毫秒)
+    const DELAY_BEFORE_SHOWING_PREVIEW = 300; // 滑鼠懸停後延遲顯示預覽的時間 (毫秒)
 
     // --- 全局變量 ---
     const PREVIEW_DIV_ID = 'userscript-internal-link-preview-div';
