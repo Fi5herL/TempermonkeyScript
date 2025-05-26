@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         網頁金額加總顯示器 (含案件資訊與日期過濾 - v1.2匯率邏輯)
+// @name         網頁金額加總顯示器 (含案件資訊、日期過濾、手動刷新 - v1.2匯率邏輯)
 // @namespace    http://tampermonkey.net/
-// @version      1.5
-// @description  在右下角顯示網頁中特定貨幣金額的加總(USD)，點擊可看詳情、換算公式、相關案件資訊，並可依完成日期過濾。採用 v1.2 版匯率處理。
+// @version      1.6
+// @description  在右下角顯示網頁中特定貨幣金額的加總(USD)，點擊可看詳情、換算公式、相關案件資訊，可依完成日期過濾，並可手動刷新數據。採用 v1.2 版匯率處理。
 // @author       Fisher Li & AI Assistant
 // @match        https://portal.ul.com/Dashboard*
 // @grant        GM_xmlhttpRequest
@@ -26,32 +26,29 @@
     const PROJECT_INFO_COLUMNS = ["Project Number", "File No", "Project Name", "ECD", "Order Line Price", "Project Handler", "Completion Date", "Project Scope", "Status Note"];
     const GRID_CONTAINER_SELECTOR = '#projectDashboardGrid';
     const GRID_HEADER_SELECTOR = '.k-grid-header';
-    const GRID_CONTENT_SELECTOR = '.k-grid-content.k-auto-scrollable'; // Or just .k-grid-content
+    const GRID_CONTENT_SELECTOR = '.k-grid-content.k-auto-scrollable';
     const GRID_ROW_SELECTOR = 'tr:not(.k-grouping-row):not(.k-filter-row):not(.k-grid-norecords)';
 
     let gridHeaderInfo = null;
     let allDetailedItemsGlobal = [];
     let currentFilterDate = null;
     let ratesDateGlobal = 'N/A';
+    let isProcessing = false; // Flag to prevent multiple simultaneous processing
 
     // --- 輔助函數：解析 Title 字串 (與 v1.2 相同) ---
     function parseTitle(title) {
         if (!title) return null;
-        const amountMatch = title.match(/\d{2,20}/); // v1.2 uses this
+        const amountMatch = title.match(/\d{2,20}/);
         if (!amountMatch) return null;
         const amountString = amountMatch[0].replace(/,/g, '');
         const amount = parseFloat(amountString);
         if (isNaN(amount)) return null;
-
-        // console.log(`[DEBUG PARSE] Title: "${title}" | Parsed String: "${amountString}" | Parsed Amount: ${amount} (Type: ${typeof amount})`);
-
         let currency = null;
         const upperTitle = title.toUpperCase();
         for (const code of TARGET_CURRENCIES) {
              if (upperTitle.includes(code)) { currency = code; break; }
         }
         if (currency === null) return null;
-
         return { originalTitle: title, amount, currency };
     }
 
@@ -80,48 +77,37 @@
                         try {
                             const data = JSON.parse(response.responseText);
                             if (data && data.usd) {
-                                const rates = { 'USD': 1 }; // 始終包含 USD (1 USD = 1 USD)
-                                // 遍歷目標貨幣列表 (排除 USD)
+                                const rates = { 'USD': 1 };
                                 TARGET_CURRENCIES.forEach(code => {
-                                    if (code === 'USD') return; // 跳過 USD 本身
+                                    if (code === 'USD') return;
                                     const lowerCode = code.toLowerCase();
                                     if (data.usd.hasOwnProperty(lowerCode)) {
-                                        const rateUsdToForeign = data.usd[lowerCode]; // This is 1 USD = X Foreign
+                                        const rateUsdToForeign = data.usd[lowerCode];
                                         if (rateUsdToForeign && typeof rateUsdToForeign === 'number' && rateUsdToForeign !== 0) {
-                                            rates[code] = 1 / rateUsdToForeign; // 存儲 1 Foreign = Y USD
-                                        } else {
-                                             console.warn(`Tampermonkey: API 返回的 ${code} 匯率無效: ${rateUsdToForeign}`);
+                                            rates[code] = 1 / rateUsdToForeign;
                                         }
-                                    } else {
-                                        console.warn(`Tampermonkey: API 未返回 ${code} 的匯率。`);
                                     }
                                 });
-                                console.log(`Tampermonkey: 成功處理目標貨幣匯率 (基於 ${data.date}):`, rates);
                                 ratesDateGlobal = data.date;
                                 resolve({ rates, date: data.date });
                             } else {
-                                console.warn("Tampermonkey: API 回應格式不符，使用預設匯率。", data);
                                 ratesDateGlobal = 'N/A (API格式錯誤)';
                                 resolve({ rates: getDefaultRates(), date: ratesDateGlobal });
                             }
                         } catch (e) {
-                            console.error("Tampermonkey: 解析匯率 API 回應失敗:", e);
                             ratesDateGlobal = 'N/A (解析失敗)';
                             resolve({ rates: getDefaultRates(), date: ratesDateGlobal });
                         }
                     } else {
-                        console.error(`Tampermonkey: 獲取匯率失敗，狀態碼: ${response.status}`);
                         ratesDateGlobal = 'N/A (請求失敗)';
                         resolve({ rates: getDefaultRates(), date: ratesDateGlobal });
                     }
                 },
                 onerror: function() {
-                    console.error("Tampermonkey: 獲取匯率請求錯誤:");
                     ratesDateGlobal = 'N/A (網絡錯誤)';
                     resolve({ rates: getDefaultRates(), date: ratesDateGlobal });
                 },
                 ontimeout: function() {
-                    console.error("Tampermonkey: 獲取匯率請求超時。");
                     ratesDateGlobal = 'N/A (超時)';
                     resolve({ rates: getDefaultRates(), date: ratesDateGlobal });
                 }
@@ -132,31 +118,22 @@
     // --- 輔助函數：提供預設/備用匯率 (採用 v1.2 邏輯: 1 Foreign = Y USD) ---
     function getDefaultRates() {
         console.warn("Tampermonkey: 使用預設/備用匯率。");
-        // These rates should represent: 1 ForeignCurrency = X USD
         return {
-            'USD': 1,
-            'CNY': 0.14,    // 1 CNY = 0.14 USD (approx)
-            'JPY': 0.0067,  // 1 JPY = 0.0067 USD (approx)
-            'EUR': 1.08,    // 1 EUR = 1.08 USD (approx)
-            'KRW': 0.00073, // 1 KRW = 0.00073 USD (approx)
-            'VND': 0.00004  // 1 VND = 0.00004 USD (approx)
+            'USD': 1, 'CNY': 0.14, 'JPY': 0.0067, 'EUR': 1.08, 'KRW': 0.00073, 'VND': 0.00004
         };
     }
 
     // --- 輔助函數：分析 Kendo UI Grid 的表頭 ---
     function analyzeGridHeaders() {
-        // ... (no changes from v1.4)
         const gridContainer = document.querySelector(GRID_CONTAINER_SELECTOR);
         if (!gridContainer) return null;
         const headerDiv = gridContainer.querySelector(GRID_HEADER_SELECTOR);
         if (!headerDiv) return null;
         const headerTr = headerDiv.querySelector('tr');
         if (!headerTr) return null;
-
         const thElements = Array.from(headerTr.querySelectorAll('th'));
         const columnIndexMap = new Map();
         const foundHeaderOrder = [];
-
         PROJECT_INFO_COLUMNS.forEach(name => {
             let thIndex = -1;
             for (let i = 0; i < thElements.length; i++) {
@@ -177,7 +154,6 @@
 
     // --- 輔助函數：從特定 Grid 行提取數據 ---
     function extractProjectDataFromRow(rowElement, pGridHeaderInfo) {
-        // ... (no changes from v1.4)
         if (!rowElement || !pGridHeaderInfo || pGridHeaderInfo.columnIndexMap.size === 0) return null;
         const cellElements = rowElement.children;
         const rowData = {};
@@ -190,100 +166,100 @@
 
     // --- 輔助函數: 解析日期字串 (MM/DD/YYYY) ---
     function parseMMDDYYYY(dateString) {
-        // ... (no changes from v1.4)
         if (!dateString || typeof dateString !== 'string') return null;
         const parts = dateString.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
         if (parts) {
             const date = new Date(parseInt(parts[3], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
-            date.setHours(0, 0, 0, 0);
-            return date;
+            date.setHours(0, 0, 0, 0); return date;
         }
         const isoMatch = dateString.match(/(\d{4})-(\d{2})-(\d{2})/);
         if (isoMatch) {
             const date = new Date(parseInt(isoMatch[1], 10), parseInt(isoMatch[2], 10) - 1, parseInt(isoMatch[3], 10));
-            date.setHours(0,0,0,0);
-            return date;
+            date.setHours(0,0,0,0); return date;
         }
-        console.warn("Tampermonkey: 無法解析日期字串:", dateString);
         return null;
     }
 
     // --- 主要異步執行函數 (採用 v1.2 匯率計算邏輯) ---
     async function processPage() {
+        if (isProcessing) {
+            console.log("Tampermonkey: 處理中，請稍候...");
+            return;
+        }
+        isProcessing = true;
         console.log("Tampermonkey: 開始處理頁面 (v1.2 匯率邏輯)...");
-        const { rates: exchangeRates } = await getExchangeRates(); // ratesDate is global
 
-        if (!gridHeaderInfo) {
-            gridHeaderInfo = analyzeGridHeaders();
-        }
+        // Show loading indicator on refresh button if it exists
+        const refreshBtn = document.getElementById('currency-refresh-button');
+        if (refreshBtn) refreshBtn.textContent = '讀取中...';
 
-        const elements = document.querySelectorAll('*[title]');
-        const parsedItems = [];
 
-        for (const el of elements) {
-            const currencyItem = parseTitle(el.getAttribute('title')); // Uses v1.2 parseTitle
-            if (currencyItem) {
-                let projectInfo = null;
-                const gridRowElement = el.closest(`${GRID_CONTAINER_SELECTOR} ${GRID_CONTENT_SELECTOR} ${GRID_ROW_SELECTOR}`);
-                if (gridRowElement && gridHeaderInfo) {
-                    projectInfo = extractProjectDataFromRow(gridRowElement, gridHeaderInfo);
-                }
-                parsedItems.push({ ...currencyItem, projectInfo, element: el });
+        try {
+            const { rates: exchangeRates } = await getExchangeRates();
+
+            if (!gridHeaderInfo) { // Only analyze headers if not already done or explicitly reset
+                gridHeaderInfo = analyzeGridHeaders();
             }
-        }
 
-        console.log(`Tampermonkey: 解析完成，找到 ${parsedItems.length} 個目標貨幣金額。`);
-        allDetailedItemsGlobal = [];
+            const elements = document.querySelectorAll('*[title]');
+            const parsedItems = [];
 
-        if (parsedItems.length > 0) {
-            parsedItems.forEach(item => {
-                const rate = exchangeRates[item.currency]; // rate is now (1 Foreign = Y USD)
-                if (rate === undefined) {
-                    console.warn(`Tampermonkey: 找不到貨幣 ${item.currency} 的匯率，跳過:`, item.originalTitle);
-                    return;
+            for (const el of elements) {
+                const currencyItem = parseTitle(el.getAttribute('title'));
+                if (currencyItem) {
+                    let projectInfo = null;
+                    const gridRowElement = el.closest(`${GRID_CONTAINER_SELECTOR} ${GRID_CONTENT_SELECTOR} ${GRID_ROW_SELECTOR}`);
+                    if (gridRowElement && gridHeaderInfo) {
+                        projectInfo = extractProjectDataFromRow(gridRowElement, gridHeaderInfo);
+                    }
+                    parsedItems.push({ ...currencyItem, projectInfo, element: el });
                 }
-                // Calculation now matches v1.2: item.amount (in Foreign) * rate (Foreign to USD)
-                const amountInUSD = item.amount * rate;
+            }
 
-                // console.log(`[DEBUG PROCESS] Storing item: Amount=${item.amount}, Currency=${item.currency}, Rate=${rate}, AmountInUSD=${amountInUSD}`);
-                allDetailedItemsGlobal.push({ ...item, rateUsed: rate, amountInUSD: amountInUSD });
-            });
-        } else {
-            console.log("Tampermonkey: 未找到任何目標貨幣的金額進行計算。");
+            allDetailedItemsGlobal = [];
+
+            if (parsedItems.length > 0) {
+                parsedItems.forEach(item => {
+                    const rate = exchangeRates[item.currency];
+                    if (rate === undefined) return;
+                    const amountInUSD = item.amount * rate;
+                    allDetailedItemsGlobal.push({ ...item, rateUsed: rate, amountInUSD: amountInUSD });
+                });
+            }
+        } catch (error) {
+            console.error("Tampermonkey: processPage 發生錯誤:", error);
+        } finally {
+            isProcessing = false;
+            if (refreshBtn) refreshBtn.textContent = '🔄'; // Reset button text
+            createOrUpdateUI(); // Always update UI, even if there was an error (to clear loading state)
         }
-        createOrUpdateUI();
     }
 
-    // --- UI 創建與更新函數 (與 v1.4 相同，但顯示的 rateUsed 和 amountInUSD 會基於新邏輯) ---
+    // --- UI 創建與更新函數 ---
     function createOrUpdateUI() {
         let floatBox = document.getElementById(SCRIPT_ID);
-        let totalDisplay, detailsDisplay, detailsList, infoDisplay, filterContainer, dateFilterInput, clearFilterButton;
+        let totalDisplay, detailsDisplay, detailsList, infoDisplay, filterContainer, dateFilterInput, clearFilterButton, refreshButton;
 
         let itemsToDisplay = [...allDetailedItemsGlobal];
         if (currentFilterDate) {
             const filterDateObj = new Date(currentFilterDate);
             filterDateObj.setUTCHours(0,0,0,0);
-
             itemsToDisplay = allDetailedItemsGlobal.filter(item => {
                 if (item.projectInfo && item.projectInfo["Completion Date"]) {
                     const itemDateObj = parseMMDDYYYY(item.projectInfo["Completion Date"]);
-                    if (itemDateObj) {
-                        return itemDateObj.getTime() >= filterDateObj.getTime();
-                    }
+                    if (itemDateObj) return itemDateObj.getTime() >= filterDateObj.getTime();
                 }
                 return false;
             });
         }
 
         let currentTotalUSD = 0;
-        itemsToDisplay.forEach(item => {
-            currentTotalUSD += item.amountInUSD; // This amountInUSD is now calculated as per v1.2
-        });
-
+        itemsToDisplay.forEach(item => { currentTotalUSD += item.amountInUSD; });
 
         if (!floatBox) {
             floatBox = document.createElement('div');
             floatBox.id = SCRIPT_ID;
+            // ... (floatBox styling)
             floatBox.style.position = 'fixed';
             floatBox.style.bottom = '15px';
             floatBox.style.right = '15px';
@@ -292,20 +268,51 @@
             floatBox.style.color = 'white';
             floatBox.style.borderRadius = '8px';
             floatBox.style.zIndex = '9999';
-            floatBox.style.cursor = 'pointer';
             floatBox.style.fontFamily = 'Arial, sans-serif';
             floatBox.style.fontSize = '14px';
             floatBox.style.boxShadow = '0 2px 5px rgba(0,0,0,0.3)';
             floatBox.style.minWidth = '280px';
             floatBox.style.lineHeight = '1.4';
+             // Add relative positioning for absolute positioned refresh button
+            floatBox.style.position = 'fixed'; // Ensure it's fixed for the child to be absolute relative to it
+
+            // --- Refresh Button ---
+            refreshButton = document.createElement('button');
+            refreshButton.id = 'currency-refresh-button';
+            refreshButton.textContent = '🔄'; // Refresh icon
+            refreshButton.title = '重新載入資料';
+            refreshButton.style.position = 'absolute';
+            refreshButton.style.top = '5px';
+            refreshButton.style.right = '5px';
+            refreshButton.style.background = 'none';
+            refreshButton.style.border = 'none';
+            refreshButton.style.color = 'white';
+            refreshButton.style.fontSize = '16px';
+            refreshButton.style.cursor = 'pointer';
+            refreshButton.style.padding = '5px';
+            refreshButton.style.lineHeight = '1';
+            refreshButton.addEventListener('click', (e) => {
+                e.stopPropagation(); // Prevent toggling details view
+                if (!isProcessing) {
+                    gridHeaderInfo = null; // Force re-analysis of headers on manual refresh if desired
+                                           // or comment this out if headers are static.
+                    processPage();
+                }
+            });
+            floatBox.appendChild(refreshButton);
+            // --- End Refresh Button ---
 
             totalDisplay = document.createElement('div');
             totalDisplay.id = 'currency-total-display';
             totalDisplay.style.fontWeight = 'bold';
+            // Add some padding to total display if refresh button is present
+            totalDisplay.style.paddingRight = '30px'; // Space for the refresh button
             floatBox.appendChild(totalDisplay);
+
 
             infoDisplay = document.createElement('div');
             infoDisplay.id = 'currency-info-display';
+            // ... (infoDisplay styling)
             infoDisplay.style.fontSize = '10px';
             infoDisplay.style.color = '#bbb';
             infoDisplay.style.marginTop = '4px';
@@ -313,12 +320,15 @@
 
             filterContainer = document.createElement('div');
             filterContainer.id = 'currency-filter-container';
+            // ... (filterContainer styling)
             filterContainer.style.marginTop = '8px';
             filterContainer.style.paddingTop = '8px';
             filterContainer.style.borderTop = '1px solid rgba(255,255,255,0.3)';
 
+
             const filterLabel = document.createElement('label');
             filterLabel.textContent = '完成日期篩選 (之後): ';
+            // ... (filterLabel styling)
             filterLabel.style.fontSize = '11px';
             filterLabel.style.marginRight = '5px';
             filterContainer.appendChild(filterLabel);
@@ -326,6 +336,7 @@
             dateFilterInput = document.createElement('input');
             dateFilterInput.type = 'date';
             dateFilterInput.id = 'completion-date-filter';
+            // ... (dateFilterInput styling)
             dateFilterInput.style.fontSize = '11px';
             dateFilterInput.style.padding = '2px';
             dateFilterInput.style.backgroundColor = '#333';
@@ -339,6 +350,7 @@
 
             clearFilterButton = document.createElement('button');
             clearFilterButton.textContent = '清除';
+            // ... (clearFilterButton styling)
             clearFilterButton.style.fontSize = '11px';
             clearFilterButton.style.marginLeft = '5px';
             clearFilterButton.style.padding = '2px 5px';
@@ -356,6 +368,7 @@
 
             detailsDisplay = document.createElement('div');
             detailsDisplay.id = 'currency-details-display';
+            // ... (detailsDisplay styling)
             detailsDisplay.style.display = 'none';
             detailsDisplay.style.marginTop = '10px';
             detailsDisplay.style.paddingTop = '10px';
@@ -372,9 +385,8 @@
             floatBox.appendChild(detailsDisplay);
 
             floatBox.addEventListener('click', (event) => {
-                if (event.target.closest('#currency-filter-container')) {
-                    event.stopPropagation();
-                    return;
+                if (event.target.closest('#currency-filter-container') || event.target.closest('#currency-refresh-button')) {
+                    event.stopPropagation(); return;
                 }
                 if (event.target === floatBox || event.target === totalDisplay || event.target === infoDisplay) {
                     const isHidden = detailsDisplay.style.display === 'none';
@@ -389,28 +401,32 @@
             detailsDisplay = floatBox.querySelector('#currency-details-display');
             detailsList = detailsDisplay.querySelector('ul');
             dateFilterInput = floatBox.querySelector('#completion-date-filter');
+            refreshButton = floatBox.querySelector('#currency-refresh-button'); // Get existing refresh button
         }
 
         if (itemsToDisplay.length === 0 && allDetailedItemsGlobal.length > 0 && currentFilterDate) {
             totalDisplay.textContent = `總金額 ≈ ${formatCurrency(0, 'USD')} (無符合篩選條件的案件)`;
-        } else if (itemsToDisplay.length === 0 && allDetailedItemsGlobal.length === 0) {
+        } else if (itemsToDisplay.length === 0 && allDetailedItemsGlobal.length === 0 && !isProcessing) { // Don't overwrite if processing
              totalDisplay.textContent = `總金額 ≈ ${formatCurrency(0, 'USD')} (無案件資訊)`;
-        } else {
+        } else if (!isProcessing) { // Don't overwrite if processing
             totalDisplay.textContent = `總金額 ≈ ${formatCurrency(currentTotalUSD, 'USD')}`;
         }
+
         infoDisplay.textContent = `基於 ${ratesDateGlobal} 匯率 (Locale: ${LOCALE})`;
         if (dateFilterInput) dateFilterInput.value = currentFilterDate || '';
+        if (refreshButton && !isProcessing) refreshButton.textContent = '🔄'; // Ensure button text is reset if not processing
 
         detailsList.innerHTML = '';
 
-        if (itemsToDisplay.length === 0) {
+        if (itemsToDisplay.length === 0 && !isProcessing) { // Don't show "no items" if still processing
             const noItemsLi = document.createElement('li');
             noItemsLi.textContent = currentFilterDate ? "沒有符合篩選條件的案件。" : "沒有可顯示的案件資訊。";
+            // ... (noItemsLi styling)
             noItemsLi.style.padding = "10px";
             noItemsLi.style.textAlign = "center";
             noItemsLi.style.color = "#aaa";
             detailsList.appendChild(noItemsLi);
-        } else {
+        } else if (itemsToDisplay.length > 0) { // Only populate if there are items and not processing
             const groupedItems = itemsToDisplay.reduce((acc, item) => {
                 if (!acc[item.currency]) acc[item.currency] = [];
                 acc[item.currency].push(item);
@@ -421,6 +437,7 @@
                 if (groupedItems[currency] && groupedItems[currency].length > 0) {
                     const currencyHeader = document.createElement('li');
                     currencyHeader.textContent = `--- ${currency} ---`;
+                    // ... (currencyHeader styling)
                     currencyHeader.style.fontWeight = 'bold';
                     currencyHeader.style.marginTop = '10px';
                     currencyHeader.style.color = '#eee';
@@ -428,37 +445,38 @@
 
                     groupedItems[currency].forEach(item => {
                         const listItem = document.createElement('li');
+                        // ... (listItem styling)
                         listItem.style.marginBottom = '10px';
                         listItem.style.paddingBottom = '8px';
                         listItem.style.borderBottom = '1px dotted rgba(255, 255, 255, 0.2)';
 
                         const originalSpan = document.createElement('span');
+                        // ... (originalSpan styling and content)
                         originalSpan.style.display = 'block';
                         originalSpan.style.fontWeight = 'bold';
                         originalSpan.style.color = 'yellow';
-                        // Display original item.amount as per v1.2
                         originalSpan.textContent = `${item.amount} ${item.currency}`;
                         listItem.appendChild(originalSpan);
 
                         const conversionSpan = document.createElement('span');
+                        // ... (conversionSpan styling and content)
                         conversionSpan.style.display = 'block';
                         conversionSpan.style.fontSize = '11px';
                         conversionSpan.style.color = '#ccc';
                         conversionSpan.style.paddingLeft = '10px';
-                        // rateUsed is now (1 Foreign = Y USD)
-                        // item.amountInUSD is item.amount * rateUsed
-                        const rateDisplay = item.rateUsed.toFixed(5); // Potentially show more precision for inverse rate
+                        const rateDisplay = item.rateUsed.toFixed(5);
                         const convertedFormatted = formatCurrency(item.amountInUSD, 'USD');
                         conversionSpan.innerHTML = `(1 ${item.currency} ≈ ${rateDisplay} USD) ≈ ${convertedFormatted}`;
                         listItem.appendChild(conversionSpan);
 
+
                         if (item.projectInfo && gridHeaderInfo && gridHeaderInfo.foundHeaderOrder.length > 0) {
                             const projectInfoDiv = document.createElement('div');
+                            // ... (projectInfoDiv styling and content)
                             projectInfoDiv.style.marginTop = '5px';
                             projectInfoDiv.style.paddingLeft = '10px';
                             projectInfoDiv.style.fontSize = '11px';
                             projectInfoDiv.style.color = '#ddd';
-
                             gridHeaderInfo.foundHeaderOrder.forEach(colName => {
                                 if (item.projectInfo[colName]) {
                                     const infoLine = document.createElement('div');
@@ -473,10 +491,9 @@
                 }
             });
         }
-        // console.log("Tampermonkey: UI 內容已更新 (v1.2 匯率邏輯)。");
     }
 
-    // --- 延遲執行主程序 & DOM觀察 (與 v1.4 相同) ---
+    // --- 延遲執行主程序 & DOM觀察 ---
     let executionScheduled = false;
     let mainExecuted = false;
     let observer = null;
@@ -505,8 +522,7 @@
         observer = new MutationObserver((mutationsList, obs) => {
             if (document.querySelector(GRID_CONTAINER_SELECTOR)) {
                 scheduleMainExecution();
-                obs.disconnect();
-                observer = null;
+                obs.disconnect(); observer = null;
             }
         });
         observer.observe(document.body, { childList: true, subtree: true });
