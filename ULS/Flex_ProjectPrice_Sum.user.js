@@ -3,7 +3,7 @@
 // @namespace    http://tampermonkey.net/
 // @version      1.6
 // @description  在右下角顯示網頁中特定貨幣金額的加總(USD)，點擊可看詳情、換算公式、相關案件資訊，可依完成日期過濾，並可手動刷新數據。採用 v1.2 版匯率處理。
-// @author       Fisher Li & AI Assistant
+// @author       Fisher Li
 // @match        https://portal.ul.com/Dashboard*
 // @grant        GM_xmlhttpRequest
 // @connect      cdn.jsdelivr.net
