@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         Combined Letter & Report Generator (Fixed, Collapsible)
+// @name         Letter Generator (Fixed, Collapsible)
 // @name:zh-CN   合併信件與報告生成器 (固定,可縮放)
 // @namespace    http://tampermonkey.net/
 // @version      4.1
@@ -140,7 +140,7 @@
                 </div>
                 <hr class="mrg-divider">
                 <div class="mrg-section">
-                    <h4 class="mrg-section-title">Report Generators</h4>
+                    <h4 class="mrg-section-title">Letter Links</h4>
                     <div id="rbg-buttons-container"></div>
                 </div>
                 <div id="mrg-global-status"></div>
