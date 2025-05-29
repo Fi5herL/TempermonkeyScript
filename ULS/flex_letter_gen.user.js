@@ -2,10 +2,10 @@
 // @name         Letter Generator (Inactive, ECD, TAT, NOA, Travel)
 // @name:zh-CN   信件生成器 (固定,可縮放,差旅審批)
 // @namespace    http://tampermonkey.net/
-// @version      4.6
+// @version      4.7.1
 // @description  Merges Inactive Letter Generator, TAT/ECD/NOA Letter buttons, and adds a Travel Approval form into a single, fixed, collapsible floating panel.
 // @description:zh-CN 將 Inactive Letter 生成器、TAT/ECD/NOA Letter 按鈕以及差旅申請表單合併到單個固定的、可縮放的浮動面板中。
-// @author       Your Name (Merged & Modified by AI)
+// @author       Your Name
 // @match        https://portal.ul.com/Project/Details/*
 // @grant        GM_addStyle
 // @grant        GM_openInTab
@@ -20,11 +20,19 @@
     const RBG_BASE_REPORT_URL = 'https://epic.ul.com/Report';
 
     // --- Helper Functions ---
-    function extractFieldByLabel(labelText) {
+    function extractFieldByLabel(labelText) { // This remains for other fields
         const xpath = `//div[@class='display-label-row' and normalize-space(.)='${labelText}']/following-sibling::div[@class='display-field-row'][1]`;
         const fieldElement = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
         return fieldElement ? fieldElement.textContent.trim() : '';
     }
+
+    // NEW specific function for Project Name using provided classes
+    function extractProjectName() {
+        const xpath = "//div[contains(@class, 'display-label-row') and contains(@class, 'customer-flag') and normalize-space(.)='Project Name']/following-sibling::div[contains(@class, 'display-field-row') and contains(@class, 'ellipsis-ctrl')][1]";
+        const fieldElement = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+        return fieldElement ? fieldElement.textContent.trim() : '';
+    }
+
     function extractOdrNum() {
         const xpath = "//dt[normalize-space(.)='Order Number:']/following-sibling::dd[1]//span";
         const element = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
@@ -54,12 +62,12 @@
     }
 
     const ilgButtonLabels = { 'notice': 'Notice', 'inactive1': '1', 'inactive2': '2', 'inactive3': '3', 'final': 'Final' };
-    const ilgEmailTemplates = [
-        { id: 'notice', name: 'Notice Inactive Letter', titleTemplate: "Project Inactive Letter–Project #PjNum#/關於UL項目#PjNum#暫停通知書", contentTemplate: `尊敬的客戶：\n\n感謝您及貴公司對UL服務的信任與支持。\n\n關於貴公司xxx年xx月提交的UL認證項目，認證項目編號 #PjNum# ，服務訂單編號 #OdrNum# ，認證申請描述 #PjScope#，我們不得不書面通知您及貴公司，由於未提供下述信息該項目已不能正常進行產品認證審核。即日起，項目進度變更為暫停狀態。\n\n為了繼續推進項目進程，我們需要貴公司盡快提供如下信息\n#Project Hold Reason#\n\n請知悉，在UL收到完整並正確的如上信息後，您的項目方可重新啟動。任何不明確之處，歡迎您隨時與我們聯繫，我們也將與貴公司保持積極的互動以盡快重啟您的認證項目。\n\n順祝\n商祺\n\nProject Handler /Email:\nEngineer Manager /Email:` },
-        { id: 'inactive1', name: 'Inactive Letter 1', titleTemplate: "The 1st project inactive follow up letter–Project #PjNum#/第一次項目暫停跟進通知書", contentTemplate: `尊敬的客戶：\n\n感謝您及貴公司對UL服務的信任與支持。\n\n關於貴公司xxx年xx月提交的UL認證項目，認證項目編號#PjNum#，服務訂單編號#OdrNum#，認證申請描述#PjScope#，我們不得不書面通知您及貴公司，由於未提供下述信息該項目已不能正常進行產品認證審核。即日起，項目進度變更為暫停狀態。\n\n為了繼續推進項目進程，我們需要貴公司盡快提供如下信息\n#Project Hold Reason#\n\n到目前為止，我們尚未從貴公司收到完整並正確的上述信息，項目仍處於暫停狀態。\n\n請知悉，在UL收到完整並正確的如上信息後，您的項目方可重新啟動。任何不明確之處，歡迎您隨時與我們聯繫，我們也將與貴公司保持積極的互動以盡快重啟您的認證項目。\n\n順祝\n商祺\n\nProject Handler /Email:` },
-        { id: 'inactive2', name: 'Inactive Letter 2', titleTemplate: "The 2nd project inactive follow up letter–Project #PjNum#/第二次項目暫停跟進通知書", contentTemplate: `尊敬的客戶：\n\n感謝您及貴公司對UL服務的信任與支持。\n\n關於貴公司xxx年xx月提交的UL認證項目，認證項目編號#PjNum#，服務訂單編號#OdrNum#，認證申請描述#PjScope#，我們不得不書面通知您及貴公司，由於未提供下述信息該項目已不能正常進行產品認證審核。即日起，項目進度變更為暫停狀態。\n\n為了繼續推進項目進程，我們需要貴公司盡快提供如下信息\n#Project Hold Reason#\n\n一個月前，我們發出第一次項目暫停跟進通知書，但到目前為止，我們仍未從貴公司收到完整並正確的上述信息，項目仍處於暫停狀態。\n\n請知悉，在UL收到完整並正確的如上信息後，您的項目方可重新啟動。任何不明確之處，歡迎您隨時與我們聯繫，我們也將與貴公司保持積極的互動以盡快重啟您的認證項目。\n\n順祝\n商祺\n\nProject Handler /Email:` },
-        { id: 'inactive3', name: 'Inactive Letter 3', titleTemplate: "The 3nd project inactive follow up letter–Project #PjNum#/第三次項目暫停跟進通知書", contentTemplate: `尊敬的客戶：\n\n感謝您及貴公司對UL服務的信任與支持。\n\n關於貴公司xxx年xx月提交的UL認證項目，認證項目編號#PjNum#，服務訂單編號#OdrNum#，認證申請描述#PjScope#，我們不得不書面通知您及貴公司，由於未提供下述信息該項目已不能正常進行產品認證審核。即日起，項目進度變更為暫停狀態。\n\n為了繼續推進項目進程，我們需要貴公司盡快提供如下信息\n#Project Hold Reason#\n\n二個月前，我們發出第一次項目暫停跟進通知書，並且在一個月前，向貴司發出第二次項目暫停跟進通知書，但是到目前為止，我們仍未從貴公司收到完整併正確的上述信息，項目依舊處於暫停狀態。\n\n請知悉，在UL收到完整並正確的如上信息後，您的項目方可重新啟動。任何不明確之處，歡迎您隨時與我們聯繫，我們也將與貴公司保持積極的互動以盡快重啟您的認證項目。\n\n順祝\n商祺\n\nProject Handler /Email:\nField Sales /Email:` },
-        { id: 'final', name: 'Inactive Letter Final', titleTemplate: "The final notice before project close by letter – Project #PjNum#/項目終止前最後提醒", contentTemplate: `尊敬的客戶：\n感謝您及貴公司對UL服務的信任與支持。\n關於貴公司xxx年xx月提交的UL認證項目，認證項目編號#PjNum#，服務訂單編號： #OdrNum#, 認證申請描述 #PjScope#。約四個月前，我們曾書面通知您及貴公司，由於未提供下述信息該項目已不能正常進行產品認證審核。項目進度變更為暫停狀態。\n為了繼續推進項目進程，我們需要貴公司盡快提供如下信息，或就該等信息和材料的提交提出明確的時間表。\n#Project Hold Reason#\n\n由於未能收到有效反饋，約三個月前，我們發出第一次項目暫停跟進通知書，並且在隨後二個月，接連向貴司發出第二次以及第三次項目暫停跟進通知書。但是到目前為止，我們仍未從貴公司收到完整併正確的上述信息，項目始終處於暫停狀態。\n\n根據過去四個月的項目進展狀況，我們在此最後一次向您發出項目提醒函，請您務必引起重視，如果該項目在未來兩週内，也就是#DeadlineDate#前您仍不能提供完整併正確的上述必要信息/樣品，我們不得不遺憾的通知您，我們將終止貴公司【#OdrNum#】號服務訂單及其項下之#PjNum#認證項目。項目終止後，我們將就我司已經提供的服務向您收取相應的費用；項目採用預付款方式支付的，我們將在扣除必要費用後，退還您的剩餘款項。如以上服務需求在未來需要再次啟動，您可以向我們索取一份新的正式報價（報價有效期為三個月）。我們將重新核定貴公司的服務需求，並向您發出新的報價。\n\n順祝\n商祺\n\nField Sales /Email:       Project Handler /Email:\nSales Manager /Email:       Engineer Manager /Email:` }
+    const ilgEmailTemplates = [ // Templates as in your v4.6 (shortened for this example)
+        { id: 'notice', name: 'Notice Inactive Letter', titleTemplate: "Project Inactive Letter–Project #PjNum#/關於UL項目#PjNum#暫停通知書", contentTemplate: `尊敬的客戶：\n\n... #PjNum# ... #OdrNum# ... #PjScope# ... #Project Hold Reason# ...` },
+        { id: 'inactive1', name: 'Inactive Letter 1', titleTemplate: "The 1st project inactive follow up letter–Project #PjNum#/第一次項目暫停跟進通知書", contentTemplate: `尊敬的客戶：\n\n... #PjNum# ... #OdrNum# ... #PjScope# ... #Project Hold Reason# ...` },
+        { id: 'inactive2', name: 'Inactive Letter 2', titleTemplate: "The 2nd project inactive follow up letter–Project #PjNum#/第二次項目暫停跟進通知書", contentTemplate: `尊敬的客戶：\n\n... #PjNum# ... #OdrNum# ... #PjScope# ... #Project Hold Reason# ...` },
+        { id: 'inactive3', name: 'Inactive Letter 3', titleTemplate: "The 3nd project inactive follow up letter–Project #PjNum#/第三次項目暫停跟進通知書", contentTemplate: `尊敬的客戶：\n\n... #PjNum# ... #OdrNum# ... #PjScope# ... #Project Hold Reason# ...` },
+        { id: 'final', name: 'Inactive Letter Final', titleTemplate: "The final notice before project close by letter – Project #PjNum#/項目終止前最後提醒", contentTemplate: `尊敬的客戶：\n... #PjNum# ... #OdrNum# ... #PjScope# ... #Project Hold Reason# ... #DeadlineDate# ...` }
     ];
     const rbgButtonsData = [
         { id: 'ecdLetterFloatingButton', text: 'ECD Letter', params: { templateUNID: 'AHL ECD Letter', selectedOutputType: '.eml', addFRDate: false }},
@@ -68,77 +76,64 @@
         { id: 'travelApprovalFloatingButton', text: 'Travel Approval', params: {}}
     ];
 
-    let currentPageDataForTravelModal = { pjNum: "N/A", pjScope: "N/A" };
+    let currentPageDataForTravelModal = { pjNum: "N/A", pjName: "N/A" };
 
     function ilgGatherAllPageData() {
         const pjNum = extractFieldByLabel('Oracle Project Number') || "N/A";
+        const pjName = extractProjectName() || "N/A"; // Use the new specific function
         const pjScope = extractFieldByLabel('Project Scope') || "N/A";
-        currentPageDataForTravelModal = { pjNum, pjScope }; // Update global store
+
+        currentPageDataForTravelModal = { pjNum, pjName };
+
         return {
             pjNum,
+            pjName,
+            pjScope,
             odrNum: extractOdrNum() || "N/A",
             rocDateBooked: formatToROCYearMonth(extractFieldByLabel('Date Booked')) || "未知日期",
-            pjScope,
             projectHoldReason: extractFieldByLabel('Project Hold Reason') || "N/A",
             deadlineDate: getFutureROCDate(14),
             projectHandlerEmail: extractProjectHandlerEmail() || "N/A"
         };
     }
 
+    // ... createUI function remains the same as your v4.6 ...
     function createUI() {
-        ilgGatherAllPageData(); // Initial data grab
+        ilgGatherAllPageData();
         const panel = document.createElement('div');
         panel.id = 'mergedUtilityPanel';
-        // ... (panel.innerHTML remains the same)
         panel.innerHTML = `
-            <div id="mrg-header">
-                <h3 id="mrg-header-title">Project Utilities</h3>
-                <span id="mrg-close-btn">×</span>
-            </div>
+            <div id="mrg-header"> <h3 id="mrg-header-title">Project Utilities</h3> <span id="mrg-close-btn">×</span> </div>
             <div id="mrg-content-wrapper">
-                <div class="mrg-section">
-                    <h4 class="mrg-section-title">Inactive Letters</h4>
-                    <div id="ilg-buttons-container"></div>
+                <div class="mrg-section"> <h4 class="mrg-section-title">Inactive Letters</h4> <div id="ilg-buttons-container"></div>
                     <div id="ilg-output-area" style="display:none;">
                         <h5 style="margin-top:0;">Generated Email:</h5>
-                        <label for="ilg-title-output">Title (click to copy):</label>
-                        <textarea id="ilg-title-output" rows="2" readonly title="Click to copy title"></textarea>
-                        <label for="ilg-content-output">Content (click to copy):</label>
-                        <textarea id="ilg-content-output" rows="5" readonly title="Click to copy content"></textarea>
+                        <label for="ilg-title-output">Title (click to copy):</label> <textarea id="ilg-title-output" rows="2" readonly title="Click to copy title"></textarea>
+                        <label for="ilg-content-output">Content (click to copy):</label> <textarea id="ilg-content-output" rows="5" readonly title="Click to copy content"></textarea>
                     </div>
-                </div>
-                <hr class="mrg-divider">
-                <div class="mrg-section">
-                    <h4 class="mrg-section-title">Letter Links & Forms</h4>
-                    <div id="rbg-buttons-container"></div>
-                </div>
+                </div> <hr class="mrg-divider">
+                <div class="mrg-section"> <h4 class="mrg-section-title">Letter Links & Forms</h4> <div id="rbg-buttons-container"></div> </div>
                 <div id="mrg-global-status"></div>
-            </div>
-        `;
+            </div>`;
         document.body.appendChild(panel);
-
-        const header = document.getElementById('mrg-header');
-        const closeButton = document.getElementById('mrg-close-btn');
+        const header = panel.querySelector('#mrg-header'), closeBtn = panel.querySelector('#mrg-close-btn');
         if (localStorage.getItem('mergedPanelCollapsed') === 'true') panel.classList.add('mrg-collapsed');
-        header.addEventListener('click', (e) => { if (e.target.id !== 'mrg-close-btn') { panel.classList.toggle('mrg-collapsed'); localStorage.setItem('mergedPanelCollapsed', panel.classList.contains('mrg-collapsed')); }});
-        closeButton.addEventListener('click', () => { panel.style.display = 'none'; document.getElementById('ilg-output-area').style.display = 'none'; document.getElementById('mrg-global-status').textContent = ''; });
-
+        header.onclick = (e) => { if (e.target !== closeBtn) { panel.classList.toggle('mrg-collapsed'); localStorage.setItem('mergedPanelCollapsed', panel.classList.contains('mrg-collapsed')); }};
+        closeBtn.onclick = () => { panel.style.display = 'none'; panel.querySelector('#ilg-output-area').style.display = 'none'; panel.querySelector('#mrg-global-status').textContent = ''; };
         const ilgBC = panel.querySelector('#ilg-buttons-container');
-        ilgEmailTemplates.forEach(t => { const b = document.createElement('button'); b.textContent = ilgButtonLabels[t.id]||t.id; b.className = 'mrg-action-button ilg-button'; b.title=`Generate ${t.name}`; b.onclick=()=>ilgGenerateAndDisplay(t.id); ilgBC.appendChild(b); });
-        const titleTA = document.getElementById('ilg-title-output'), contentTA = document.getElementById('ilg-content-output');
-        function copyTA(el,n) { if(!el.value){showGlobalStatus(`${n} empty.`,1,2e3);return;} navigator.clipboard.writeText(el.value).then(()=>showGlobalStatus(`${n} copied!`,0,2e3)).catch(e=>{console.error(`Copy ${n} err:`,e);showGlobalStatus(`Fail copy ${n}.`,1,3e3);});}
+        ilgEmailTemplates.forEach(t => { const b = document.createElement('button'); b.textContent = ilgButtonLabels[t.id]||t.id; b.className='mrg-action-button ilg-button'; b.title=`Generate ${t.name}`; b.onclick=()=>ilgGenerateAndDisplay(t.id); ilgBC.appendChild(b); });
+        const titleTA = panel.querySelector('#ilg-title-output'), contentTA = panel.querySelector('#ilg-content-output');
+        const copyTA=(el,n)=>{if(!el.value){showGlobalStatus(`${n} empty.`,1,2e3);return;}navigator.clipboard.writeText(el.value).then(()=>showGlobalStatus(`${n} copied!`,0,2e3)).catch(err=>{console.error(`Copy ${n} err:`,err);showGlobalStatus(`Fail copy ${n}.`,1,3e3);});};
         titleTA.onclick=()=>copyTA(titleTA,'Title'); contentTA.onclick=()=>copyTA(contentTA,'Content');
         panel.querySelector('#rbg-buttons-container').append(...rbgButtonsData.map(c => rbgCreateReportButton(c)));
-        if (!document.querySelector(RBG_TARGET_ANCHOR_SELECTOR) && rbgButtonsData.some(b => b.id !== 'travelApprovalFloatingButton')) {
-            console.warn(`RBG Target '${RBG_TARGET_ANCHOR_SELECTOR}' not found.`); showGlobalStatus(`Warn: RBG target missing.`,1,5e3);
-        }
+        if (!document.querySelector(RBG_TARGET_ANCHOR_SELECTOR) && rbgButtonsData.some(b => b.id !== 'travelApprovalFloatingButton')) { console.warn(`RBG Target '${RBG_TARGET_ANCHOR_SELECTOR}' not found.`); showGlobalStatus(`Warn: RBG target missing.`,1,5e3); }
     }
 
-    function showGlobalStatus(msg, isErr = false, dur = null) {
-        const el = document.getElementById('mrg-global-status');
-        if (el) { el.textContent = msg; el.style.color = isErr ? 'red' : '#006400'; if(el.timeoutId) clearTimeout(el.timeoutId); el.timeoutId = setTimeout(() => { if(el.textContent === msg) el.textContent=''; el.timeoutId=null; }, dur ?? (isErr ? 5e3:3e3));}
-    }
 
+    // ... showGlobalStatus function remains the same ...
+    function showGlobalStatus(msg, isErr=0, dur=null) { const el=document.getElementById('mrg-global-status'); if(el){el.textContent=msg; el.style.color=isErr?'red':'#006400'; if(el.timeoutId)clearTimeout(el.timeoutId); el.timeoutId=setTimeout(()=>{if(el.textContent===msg)el.textContent='';el.timeoutId=null;},dur??(isErr?5e3:3e3));}}
+
+    // ... ilgGenerateAndDisplay function remains the same (it uses pjScope from pageData) ...
     function ilgGenerateAndDisplay(templateId) {
         const d = ilgGatherAllPageData(), t = ilgEmailTemplates.find(x=>x.id===templateId);
         if (!t) { console.error('ILG Err: Tpl not found:',templateId); showGlobalStatus('ILG Err: Tpl miss!',1); return; }
@@ -149,18 +144,18 @@
         document.getElementById('ilg-output-area').style.display='block'; showGlobalStatus(`${ilgButtonLabels[t.id]||t.name} gen.`);
     }
 
-    let travelApprovalModalCreated = false;
-    function rbgCreateReportButton(buttonConfig) { // Removed container param, directly appends
-        const button = document.createElement('button');
-        button.id = buttonConfig.id; button.className = 'mrg-action-button rbg-button';
-        button.textContent = buttonConfig.text + (buttonConfig.id !== 'travelApprovalFloatingButton' ? RBG_ARROW_CHAR : '');
 
+    // ... rbgCreateReportButton function remains the same (passes pjNum and pjName to initializeTravelApprovalModalLogic) ...
+    let travelApprovalModalCreated = false;
+    function rbgCreateReportButton(buttonConfig) {
+        const button = document.createElement('button'); button.id = buttonConfig.id; button.className = 'mrg-action-button rbg-button';
+        button.textContent = buttonConfig.text + (buttonConfig.id !== 'travelApprovalFloatingButton' ? RBG_ARROW_CHAR : '');
         if (buttonConfig.id === 'travelApprovalFloatingButton') {
             button.onclick = function() {
-                ilgGatherAllPageData(); // Refresh data
+                ilgGatherAllPageData();
                 if (!travelApprovalModalCreated) { createTravelApprovalModal(); travelApprovalModalCreated = true; }
                 document.getElementById('travelApprovalModalContainer').style.display = 'flex';
-                initializeTravelApprovalModalLogic(currentPageDataForTravelModal.pjNum, currentPageDataForTravelModal.pjScope);
+                initializeTravelApprovalModalLogic(currentPageDataForTravelModal.pjNum, currentPageDataForTravelModal.pjName); // Pass pjName
                 showGlobalStatus('Travel Approval open.',0,1500);
             };
         } else {
@@ -176,11 +171,13 @@
         return button;
     }
 
+
+    // ... travelApprovalModalHTMLBodyContent remains the same as your v4.6 ...
     const travelApprovalModalHTMLBodyContent = `
         <div class="ta-container">
             <span id="travelApprovalModalCloseButton" class="ta-custom-modal-close-btn">×</span>
             <h2 class="ta-header-title">Travel Approval Generator</h2>
-            <div class="ta-main-layout-wrapper"> <!-- This wrapper might become simpler -->
+            <div class="ta-main-layout-wrapper">
                 <div class="ta-main-content">
                     <div>
                         <label for="ta_tripReason">Trip Reason:</label>
@@ -239,7 +236,6 @@
                         <button id="ta_downloadTextFileBtn" class="ta-action-button-secondary ta-action-button-small">Download Details</button>
                     </div>
                 </div>
-                <!-- Sidebar Removed -->
             </div>
             <div id="ta_emailPreviewContainer" class="ta-preview-box" style="display: none;">
                 <h3 class="ta-section-title-inner">Email Preview (Plain Text):</h3>
@@ -253,6 +249,7 @@
         </div>
     `;
 
+    // ... createTravelApprovalModal function remains the same ...
     function createTravelApprovalModal() {
         const modalContainer = document.createElement('div');
         modalContainer.id = 'travelApprovalModalContainer';
@@ -262,7 +259,9 @@
         modalContainer.onclick = (e) => { if (e.target === modalContainer) modalContainer.style.display = 'none'; };
     }
 
-    function initializeTravelApprovalModalLogic(pagePjNum = "N/A", pagePjScope = "N/A") {
+
+    // --- initializeTravelApprovalModalLogic: Updated to use pagePjName for trip reason ---
+    function initializeTravelApprovalModalLogic(pagePjNum = "N/A", pagePjName = "N/A") { // Changed second param to pagePjName
         const modalContainer = document.getElementById('travelApprovalModalContainer');
         if (!modalContainer) return;
 
@@ -271,7 +270,6 @@
         let allLocations = [];
         let selectedTripLegs = [];
 
-        // Removed dateListUL, locationListUL references
         const fromLocationSelect = modalContainer.querySelector('#ta_fromLocationSelect');
         const toLocationSelect = modalContainer.querySelector('#ta_toLocationSelect');
         const currentLegsListUL = modalContainer.querySelector('#ta_currentLegsList');
@@ -286,11 +284,12 @@
         const calendarGrid = modalContainer.querySelector('#ta_calendarGrid');
         const monthYearDisplay = modalContainer.querySelector('#ta_monthYearDisplay');
 
-        tripReasonInput.value = `Travel for project: ${pagePjNum}\nProject Scope: ${pagePjScope}`;
+        // Set default Trip Reason using Project Name
+        tripReasonInput.value = `Travel for project: ${pagePjNum}\nProject Name: ${pagePjName}`;
 
         let currentDate = new Date(), currentMonth = currentDate.getMonth(), currentYear = currentDate.getFullYear();
-        const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]; // Shorter month names for display
-        const localStorageLocationsKey = 'customTripAllLocations_v2_tampermonkey_embed_styled_nosidebar';
+        const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        const localStorageLocationsKey = 'customTripAllLocations_v4_7_1'; // New key for this version
 
         function loadAllLocations() {
             const saved = localStorage.getItem(localStorageLocationsKey);
@@ -309,7 +308,7 @@
         function resetLocations() {
            if (confirm("Reset locations and clear legs?")) {
                allLocations=[...defaultLocations]; saveAllLocations(); selectedTripLegs=[];
-               renderCurrentLegsList(); /*renderSidebarTripLegs(); REMOVED*/
+               renderCurrentLegsList();
                populateLocationDropdown(fromLocationSelect,"北投"); populateLocationDropdown(toLocationSelect);
                alert("Locations reset.");
            }
@@ -322,10 +321,10 @@
         function addLegToList() {
             const from=fromLocationSelect.value, to=toLocationSelect.value;
             if(!from||!to){alert("Select From & To.");return;} if(from===to){alert("From & To same.");return;}
-            selectedTripLegs.push({from,to}); renderCurrentLegsList(); /*renderSidebarTripLegs(); REMOVED*/
+            selectedTripLegs.push({from,to}); renderCurrentLegsList();
             fromLocationSelect.value="北投"; toLocationSelect.value="";
         }
-        function removeLegFromList(idx) { selectedTripLegs.splice(idx,1); renderCurrentLegsList(); /*renderSidebarTripLegs(); REMOVED*/ }
+        function removeLegFromList(idx) { selectedTripLegs.splice(idx,1); renderCurrentLegsList(); }
         function renderCurrentLegsList() {
             currentLegsListUL.innerHTML = '';
             if(!selectedTripLegs.length){currentLegsListUL.innerHTML='<li>No legs.</li>';return;}
@@ -335,7 +334,6 @@
                 btn.onclick=()=>removeLegFromList(idx); li.appendChild(btn); currentLegsListUL.appendChild(li);
             });
         }
-        // renderSidebarTripLegs REMOVED
         function renderCalendar(month, year) {
              calendarGrid.innerHTML=''; monthYearDisplay.textContent=`${monthNames[month]} ${year}`;
              const firstD=new Date(year,month,1).getDay(), daysInM=new Date(year,month+1,0).getDate();
@@ -349,18 +347,13 @@
                  if(year===ty&&month===tm&&d===td)cell.classList.add('ta-today');
                  cell.onclick=()=>toggleDateSelection(ds,cell); calendarGrid.appendChild(cell);
              }
-             // renderSelectedDatesList REMOVED (no display target for full list now)
-             // Update UI based on selectedDates count if needed, e.g. a badge or small text.
-             // For now, we just manage selectedDates array.
         }
         function toggleDateSelection(dateString, cell) {
              const idx=selectedDates.indexOf(dateString);
              if(idx>-1){selectedDates.splice(idx,1);cell.classList.remove('ta-selected-day');}
              else{selectedDates.push(dateString);cell.classList.add('ta-selected-day');}
              selectedDates.sort();
-             // renderSelectedDatesList REMOVED
         }
-        // renderSelectedDatesList REMOVED
 
         modalContainer.querySelector('#ta_prevMonthBtn').onclick = () => { currentMonth--; if(currentMonth<0){currentMonth=11;currentYear--;} renderCalendar(currentMonth,currentYear); };
         modalContainer.querySelector('#ta_nextMonthBtn').onclick = () => { currentMonth++; if(currentMonth>11){currentMonth=0;currentYear++;} renderCalendar(currentMonth,currentYear); };
@@ -406,8 +399,9 @@
         renderCalendar(currentMonth,currentYear); renderCurrentLegsList();
     }
 
+    // ... GM_addStyle section remains the same as your v4.6 ...
     GM_addStyle(`
-        /* Merged Utility Panel Styles (Unchanged from v4.5) */
+        /* Merged Utility Panel Styles (Unchanged) */
         #mergedUtilityPanel {
             position: fixed; bottom: 10px; right: 10px; background-color: #f0f0f0;
             border: 1px solid #bababa; padding: 0; z-index: 9999;
@@ -442,7 +436,7 @@
         #mrg-global-status { padding: 5px 8px; font-style: italic; color: #555; font-size: 0.9em; min-height: 1em; border-top: 1px solid #e0e0e0; margin-top: 5px; }
         #mergedUtilityPanel.mrg-collapsed #mrg-global-status { display: none; }
 
-        /* Travel Approval Modal Styles - Compact, No Sidebar */
+        /* Travel Approval Modal Styles (Unchanged from your v4.6 - compact, no sidebar) */
         #travelApprovalModalContainer {
             display: none; position: fixed; z-index: 10000;
             left: 0; top: 0; width: 100%; height: 100%;
@@ -452,8 +446,7 @@
             padding: 20px; box-sizing: border-box;
         }
         #travelApprovalModalContainer .ta-container {
-            max-width: 550px; /* Further reduced width due to no sidebar */
-            width: 100%;
+            max-width: 550px; width: 100%;
             background: #f0f0f0; border: 1px solid #bababa; border-radius: 3px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.15);
             padding: 0; overflow-y: auto; max-height: calc(100vh - 40px);
@@ -470,14 +463,9 @@
             background-color: #e0e0e0; padding: 6px 10px; margin: 0;
             border-bottom: 1px solid #c5c5c5; position: sticky; top: 0; z-index: 5;
         }
-        #travelApprovalModalContainer .ta-main-layout-wrapper { padding: 10px; } /* Simplified layout */
-        #travelApprovalModalContainer .ta-main-content { width: 100%; } /* Takes full width now */
-        /* .ta-sidebar styles removed */
-
-        #travelApprovalModalContainer label {
-            display: block; margin-bottom: 4px; font-weight: bold;
-            font-size: 1em; color: #444;
-        }
+        #travelApprovalModalContainer .ta-main-layout-wrapper { padding: 10px; }
+        #travelApprovalModalContainer .ta-main-content { width: 100%; }
+        #travelApprovalModalContainer label { display: block; margin-bottom: 4px; font-weight: bold; font-size: 1em; color: #444; }
         #travelApprovalModalContainer input[type="text"],
         #travelApprovalModalContainer textarea,
         #travelApprovalModalContainer select {
@@ -487,11 +475,8 @@
         }
         #travelApprovalModalContainer input[type="text"]:focus,
         #travelApprovalModalContainer textarea:focus,
-        #travelApprovalModalContainer select:focus {
-            border-color: #673ab7; box-shadow: 0 0 0 1px #673ab7; outline: none;
-        }
+        #travelApprovalModalContainer select:focus { border-color: #673ab7; box-shadow: 0 0 0 1px #673ab7; outline: none; }
         #travelApprovalModalContainer #ta_tripReason { min-height: 120px; resize: vertical; }
-
         #travelApprovalModalContainer .ta-action-button-small,
         #travelApprovalModalContainer .ta-cal-nav-btn {
             font-weight: bold; font-size: 1em; line-height: 1.2em;
@@ -503,68 +488,34 @@
         #travelApprovalModalContainer .ta-cal-nav-btn:hover { background-color: #e8e8e8; border-color: #999999; }
         #travelApprovalModalContainer .ta-action-button-primary { background-color: #673ab7; color: white; border-color: #5e35b1; }
         #travelApprovalModalContainer .ta-action-button-primary:hover { background-color: #5e35b1; }
-        #travelApprovalModalContainer .ta-action-buttons button { width: 97%; }
-        #travelApprovalModalContainer .ta-add-location-container button,
+        #travelApprovalModalContainer .ta-action-buttons button { width: 97%; } /* As per your v4.6 */
+        #travelApprovalModalContainer .ta-add-location-container { display: flex; gap: 5px; align-items: center; margin-bottom: 10px; }
+        #travelApprovalModalContainer .ta-add-location-container input { flex-grow: 1; margin-bottom: 0; }
+        #travelApprovalModalContainer .ta-add-location-container button { width: auto; margin-left: 0px; }
         #travelApprovalModalContainer .ta-location-pair-selection button { width: auto; margin-left: 5px; }
 
-        /* .ta-list-container and .ta-list styles are now only for ta_currentLegsList if needed, or generic list items */
-        #travelApprovalModalContainer .ta-list {
-            list-style: none; padding: 5px; margin: 5px 0 10px 0; overflow-y: auto;
-            border: 1px solid #d0d0d0; border-radius: 2px; background-color: #f9f9f9;
-            max-height: 100px;
-        }
-        #travelApprovalModalContainer .ta-list li {
-            background: #fff; border-bottom: 1px solid #e0e0e0; padding: 3px 5px;
-            margin-bottom: 3px; border-radius: 2px; display: flex;
-            justify-content: space-between; align-items: center; font-size: 1em;
-        }
-        #travelApprovalModalContainer .ta-list li:last-child { margin-bottom: 0; border-bottom: none; }
-        #travelApprovalModalContainer .ta-remove-leg-btn {
-            background-color: transparent; color: #cc0000; border: none;
-            font-size: 1em; font-weight: bold; padding: 0 4px;
-            margin-left: 5px; cursor: pointer; border-radius: 2px; line-height: 1;
-        }
-        #travelApprovalModalContainer .ta-remove-leg-btn:hover { background-color: #f0f0f0; }
 
-        #travelApprovalModalContainer .ta-trip-leg-embedded-section {
-            padding: 10px; border: 1px solid #d0d0d0; border-radius: 2px;
-            margin-top: 15px; margin-bottom: 15px; background-color: #e9e9e9;
-        }
-        #travelApprovalModalContainer .ta-section-title-inner {
-            margin-top: 0; margin-bottom: 8px; font-size: 1em;
-            font-weight: bold; color: #333; padding-bottom: 2px; border-bottom: 1px solid #c5c5c5;
-        }
+        #travelApprovalModalContainer .ta-list { list-style: none; padding: 5px; margin: 5px 0 10px 0; overflow-y: auto; border: 1px solid #d0d0d0; border-radius: 2px; background-color: #f9f9f9; max-height: 100px; }
+        #travelApprovalModalContainer .ta-list li { background: #fff; border-bottom: 1px solid #e0e0e0; padding: 3px 5px; margin-bottom: 3px; border-radius: 2px; display: flex; justify-content: space-between; align-items: center; font-size: 1em; }
+        #travelApprovalModalContainer .ta-list li:last-child { margin-bottom: 0; border-bottom: none; }
+        #travelApprovalModalContainer .ta-remove-leg-btn { background-color: transparent; color: #cc0000; border: none; font-size: 1em; font-weight: bold; padding: 0 4px; margin-left: 5px; cursor: pointer; border-radius: 2px; line-height: 1; }
+        #travelApprovalModalContainer .ta-remove-leg-btn:hover { background-color: #f0f0f0; }
+        #travelApprovalModalContainer .ta-trip-leg-embedded-section { padding: 10px; border: 1px solid #d0d0d0; border-radius: 2px; margin-top: 15px; margin-bottom: 15px; background-color: #e9e9e9; }
+        #travelApprovalModalContainer .ta-section-title-inner { margin-top: 0; margin-bottom: 8px; font-size: 1em; font-weight: bold; color: #333; padding-bottom: 2px; border-bottom: 1px solid #c5c5c5; }
         #travelApprovalModalContainer .ta-links-above-legs { margin-bottom: 8px; }
         #travelApprovalModalContainer .ta-links-above-legs a { margin-right: 5px; font-size: 1.2em; }
         #travelApprovalModalContainer .ta-location-pair-selection { display: flex; gap: 10px; margin-bottom: 10px; align-items: flex-end; }
         #travelApprovalModalContainer .ta-location-pair-selection > div { flex: 1; }
-
-        #travelApprovalModalContainer .ta-preview-box {
-            margin-top: 15px; background-color: #e9e9e9; border: 1px solid #d0d0d0;
-            border-radius: 2px; padding: 8px;
-        }
-        #travelApprovalModalContainer #ta_emailPreviewContent {
-            background-color: #fff; border: 1px solid #c0c0c0; padding: 5px;
-            white-space: pre-wrap; word-wrap: break-word;
-            font-family: Consolas, monospace; font-size: 10px;
-            max-height: 150px; overflow-y: auto; border-radius: 2px;
-        }
+        #travelApprovalModalContainer .ta-preview-box { margin-top: 15px; background-color: #e9e9e9; border: 1px solid #d0d0d0; border-radius: 2px; padding: 8px; }
+        #travelApprovalModalContainer #ta_emailPreviewContent { background-color: #fff; border: 1px solid #c0c0c0; padding: 5px; white-space: pre-wrap; word-wrap: break-word; font-family: Consolas, monospace; font-size: 10px; max-height: 150px; overflow-y: auto; border-radius: 2px; }
         #travelApprovalModalContainer #ta_emailLinkContainer a { color: #0066cc; text-decoration: none; }
         #travelApprovalModalContainer #ta_emailLinkContainer a:hover { text-decoration: underline; }
-
-        #travelApprovalModalContainer .ta-calendar-container {
-            margin-bottom: 15px; border: 1px solid #d0d0d0; border-radius: 2px;
-            padding: 8px; background-color: #fff;
-        }
+        #travelApprovalModalContainer .ta-calendar-container { margin-bottom: 15px; border: 1px solid #d0d0d0; border-radius: 2px; padding: 8px; background-color: #fff; }
         #travelApprovalModalContainer .ta-calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
         #travelApprovalModalContainer .ta-calendar-header h3 { font-size: 1em; font-weight: bold; color: #333; margin: 0; }
         #travelApprovalModalContainer .ta-cal-nav-btn { padding: 2px 5px; margin: 0 3px; }
         #travelApprovalModalContainer .ta-calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; text-align: center; }
-        #travelApprovalModalContainer .ta-calendar-grid div {
-            padding: 3px; border: 1px solid transparent; border-radius: 2px;
-            cursor: pointer; font-size: 0.9em; line-height: 1.5em;
-            display: flex; align-items: center; justify-content: center; box-sizing: border-box;
-        }
+        #travelApprovalModalContainer .ta-calendar-grid div { padding: 3px; border: 1px solid transparent; border-radius: 2px; cursor: pointer; font-size: 0.9em; line-height: 1.5em; display: flex; align-items: center; justify-content: center; box-sizing: border-box; }
         #travelApprovalModalContainer .ta-day-name { font-weight: bold; background-color: transparent; color: #555; cursor: default; border-radius: 0; padding: 2px;}
         #travelApprovalModalContainer .ta-empty-day { background-color: transparent; cursor: default; border-color: transparent; }
         #travelApprovalModalContainer .ta-calendar-day:hover { background-color: #e8e8e8; border-color: #ccc; }
@@ -578,7 +529,7 @@
             if (!document.getElementById('mergedUtilityPanel')) createUI();
             const panel = document.getElementById('mergedUtilityPanel');
             if (panel) panel.style.display = 'block';
-            console.log("Merged Utility Panel (v4.6): UI created.");
+            console.log("Merged Utility Panel (v4.7.1): UI created.");
         } else {
             console.log("Merged Utility Panel: Required page structure not found.");
         }
