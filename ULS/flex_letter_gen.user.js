@@ -5,7 +5,7 @@
 // @version      4.7.1
 // @description  Merges Inactive Letter Generator, TAT/ECD/NOA Letter buttons, and adds a Travel Approval form into a single, fixed, collapsible floating panel.
 // @description:zh-CN 將 Inactive Letter 生成器、TAT/ECD/NOA Letter 按鈕以及差旅申請表單合併到單個固定的、可縮放的浮動面板中。
-// @author       Your Name
+// @author       Your Name (Merged & Modified by AI)
 // @match        https://portal.ul.com/Project/Details/*
 // @grant        GM_addStyle
 // @grant        GM_openInTab
@@ -266,7 +266,7 @@
         if (!modalContainer) return;
 
         let selectedDates = [];
-        const defaultLocations = ["北投", "關渡賓士大樓", "群通大樓", "新店", "新莊", "桃園", "新竹", "台中", "高雄"];
+        const defaultLocations = ["台北", "關渡賓士大樓", "群通大樓", "新北", "桃園", "新竹", "台中", "台南", "高雄"];
         let allLocations = [];
         let selectedTripLegs = [];
 
@@ -369,7 +369,7 @@
              const subject=subjParts.join(" - ");
              let body=`Dear Manager,\n\nI would like to apply for a business trip. Details:\n\nReason:\n${reason}\n\nDates:\n`;
              selectedDates.length?selectedDates.forEach(d=>body+=`- ${d}\n`):body+="- (No dates)\n"; body+="\nLocations/Legs:\n";
-             selectedTripLegs.length?selectedTripLegs.forEach(l=>body+=`- From: ${l.from}\n  To:   ${l.to}\n`):body+="- (No legs)\n";
+             selectedTripLegs.length?selectedTripLegs.forEach(l=>body+=`From: ${l.from}. To:   ${l.to}\n`):body+="- (No legs)\n";
              let accTitle="Charge & Account Allocation:"; if(chargeOpt.value==="Billable-Inv")accTitle+=" (Billable Cust Exp):"; else if(chargeOpt.value==="Billable-NonInv")accTitle+=" (Other Cust Exp):";
              body+=`\n${accTitle}\n- ${chargeOpt.text}\n\nPlease approve.\n\nThank you!`;
              return {subject,body};
