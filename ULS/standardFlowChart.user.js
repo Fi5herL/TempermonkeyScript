@@ -147,6 +147,7 @@
             }
             return context;
         }
+
         findCrossReferences() {
             const allIds = new Set(this.standards.keys());
             this.standards.forEach(standard => {
@@ -453,20 +454,51 @@
             }, 100);
         }
 
-        exportDiagram() {
-            const svgElement = document.querySelector('#ul-diagram .mermaid > svg');
-            if (!svgElement) { alert('No diagram to export.'); return; }
-            const svgData = new XMLSerializer().serializeToString(svgElement);
-            const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `ul-standards-diagram-page-${this.currentPage + 1}.svg`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
+exportDiagram() {
+    console.log('Export requested. Checking for SVG element...');
+    const svgElement = document.querySelector('#ul-diagram .mermaid > svg');
+    if (!svgElement) {
+        alert('Diagram not found. Cannot export.');
+        console.error('Export failed: SVG element not found.');
+        return;
+    }
+
+    console.log('SVG element found. Preparing for export.');
+    // 建立一個 SVG 的副本來操作，避免影響頁面上的原始圖表
+    const svgClone = svgElement.cloneNode(true);
+    svgClone.style.backgroundColor = 'white'; // 確保導出的圖片有白色背景
+
+    const svgData = new XMLSerializer().serializeToString(svgClone);
+    const dataUri = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgData);
+
+    // 嘗試開啟新視窗來繞過沙箱下載限制
+    console.log('Attempting to open a new window for image preview.');
+    const newWindow = window.open();
+
+    if (newWindow && !newWindow.closed) {
+        try {
+            newWindow.document.title = `Diagram Export - Page ${this.currentPage + 1}`;
+            newWindow.document.body.style.margin = '0';
+            newWindow.document.body.style.backgroundColor = '#f0f0f0';
+            newWindow.document.body.innerHTML = `
+                <div style="text-align:center; padding: 20px; font-family: sans-serif; background-color: #333; color: white;">
+                    <p style="margin: 0;">Right-click the image and select "Save Image As..." to download.</p>
+                </div>
+                <div style="display:flex; align-items:center; justify-content:center; padding: 20px;">
+                    <img src="${dataUri}" alt="UL Standards Diagram" style="max-width: 95%; max-height: 85vh; background-color: white; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+                </div>
+            `;
+            console.log('Successfully opened image in a new tab.');
+        } catch (e) {
+            console.error('Could not write to the new window. It might have been blocked or navigated away too quickly.', e);
+            // 如果寫入失敗 (例如，新視窗立刻跳轉)，就直接跳轉到 data URI
+            newWindow.location.href = dataUri;
         }
+    } else {
+        console.warn('Pop-up was blocked. Informing the user.');
+        alert('Pop-up blocked! Please allow pop-ups for this site to export the diagram.');
+    }
+}
 
         toggleVisibility(newState) {
             this.isVisible = newState;
