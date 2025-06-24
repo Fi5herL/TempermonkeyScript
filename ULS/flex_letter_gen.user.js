@@ -2,7 +2,7 @@
 // @name         Letter Generator (Inactive, ECD, TAT, NOA, Travel, Close)
 // @name:zh-CN   信件生成器 (固定,可縮放,差旅審批,結案信)
 // @namespace    http://tampermonkey.net/
-// @version      4.7.3 // NEW: Incremented version
+// @version      4.7.6 // MODIFIED: Simplified trip leg entry to direct generation with override
 // @description  Merges Inactive Letter Generator, TAT/ECD/NOA/PI/Close Letter buttons, and adds a Travel Approval form into a single, fixed, collapsible floating panel.
 // @description:zh-CN 將 Inactive Letter 生成器、TAT/ECD/NOA/PI/結案信 Letter 按鈕以及差旅申請表單合併到單個固定的、可縮放的浮動面板中。
 // @author       Your Name
@@ -68,13 +68,12 @@
         { id: 'inactive3', name: 'Inactive Letter 3', titleTemplate: "The 3nd project inactive follow up letter–Project #PjNum#/第三次項目暫停跟進通知書", contentTemplate: `尊敬的客戶：\n\n感謝您及貴公司對UL服務的信任與支持。\n\n關於貴公司xxx年xx月提交的UL認證項目，認證項目編號#PjNum#，服務訂單編號#OdrNum#，認證申請描述#PjScope#，我們不得不書面通知您及貴公司，由於未提供下述信息該項目已不能正常進行產品認證審核。即日起，項目進度變更為暫停狀態。\n\n為了繼續推進項目進程，我們需要貴公司盡快提供如下信息\n#Project Hold Reason#\n\n二個月前，我們發出第一次項目暫停跟進通知書，並且在一個月前，向貴司發出第二次項目暫停跟進通知書，但是到目前為止，我們仍未從貴公司收到完整併正確的上述信息，項目依舊處於暫停狀態。\n\n請知悉，在UL收到完整並正確的如上信息後，您的項目方可重新啟動。任何不明確之處，歡迎您隨時與我們聯繫，我們也將與貴公司保持積極的互動以盡快重啟您的認證項目。\n\n順祝\n商祺\n\nProject Handler /Email:\nField Sales /Email:` },
         { id: 'final', name: 'Inactive Letter Final', titleTemplate: "The final notice before project close by letter – Project #PjNum#/項目終止前最後提醒", contentTemplate: `尊敬的客戶：\n感謝您及貴公司對UL服務的信任與支持。\n關於貴公司xxx年xx月提交的UL認證項目，認證項目編號#PjNum#，服務訂單編號： #OdrNum#, 認證申請描述 #PjScope#。約四個月前，我們曾書面通知您及貴公司，由於未提供下述信息該項目已不能正常進行產品認證審核。項目進度變更為暫停狀態。\n為了繼續推進項目進程，我們需要貴公司盡快提供如下信息，或就該等信息和材料的提交提出明確的時間表。\n#Project Hold Reason#\n\n由於未能收到有效反饋，約三個月前，我們發出第一次項目暫停跟進通知書，並且在隨後二個月，接連向貴司發出第二次以及第三次項目暫停跟進通知書。但是到目前為止，我們仍未從貴公司收到完整併正確的上述信息，項目始終處於暫停狀態。\n\n根據過去四個月的項目進展狀況，我們在此最後一次向您發出項目提醒函，請您務必引起重視，如果該項目在未來兩週内，也就是#DeadlineDate#前您仍不能提供完整併正確的上述必要信息/樣品，我們不得不遺憾的通知您，我們將終止貴公司【#OdrNum#】號服務訂單及其項下之#PjNum#認證項目。項目終止後，我們將就我司已經提供的服務向您收取相應的費用；項目採用預付款方式支付的，我們將在扣除必要費用後，退還您的剩餘款項。如以上服務需求在未來需要再次啟動，您可以向我們索取一份新的正式報價（報價有效期為三個月）。我們將重新核定貴公司的服務需求，並向您發出新的報價。\n\n順祝\n商祺\n\nField Sales /Email:       Project Handler /Email:\nSales Manager /Email:       Engineer Manager /Email:` }
     ];
-    // MODIFIED: Added closeLetterFloatingButton
     const rbgButtonsData = [
         { id: 'ecdLetterFloatingButton', text: 'ECD Letter', params: { templateUNID: 'AHL ECD Letter', selectedOutputType: '.eml', addFRDate: false }},
         { id: 'tatLetterFloatingButton', text: 'TAT Letter', params: { templateUNID: 'AHL TAT Letter', selectedOutputType: '.eml', addFRDate: false }},
         { id: 'noaLetterFloatingButton', text: 'NOA Letter', params: { templateUNID: 'Notice of Authorization or Completion Letter', selectedOutputType: '.default', addFRDate: true }},
         { id: 'piLetterFloatingButton', text: 'PI Letter', params: { templateUNID: 'AHL Preliminary Evaluation', selectedOutputType: '.default', addFRDate: false }},
-        { id: 'closeLetterFloatingButton', text: 'Close Letter', params: {} }, // NEW: Close Letter button definition
+        { id: 'closeLetterFloatingButton', text: 'Close Letter', params: {} },
         { id: 'travelApprovalFloatingButton', text: 'Travel Approval', params: {}}
     ];
 
@@ -93,7 +92,6 @@
             rocDateBooked: formatToROCYearMonth(extractFieldByLabel('Date Booked')) || "未知日期",
             projectHoldReason: extractFieldByLabel('Project Hold Reason') || "N/A",
             deadlineDate: getFutureROCDate(14),
-            // projectHandlerEmail: extractProjectHandlerEmail() || "N/A",
             clientName,
             clientEmail
         };
@@ -126,7 +124,7 @@
         const copyTA=(el,n)=>{if(!el.value){showGlobalStatus(`${n} empty.`,1,2e3);return;}navigator.clipboard.writeText(el.value).then(()=>showGlobalStatus(`${n} copied!`,0,2e3)).catch(err=>{console.error(`Copy ${n} err:`,err);showGlobalStatus(`Fail copy ${n}.`,1,3e3);});};
         titleTA.onclick=()=>copyTA(titleTA,'Title'); contentTA.onclick=()=>copyTA(contentTA,'Content');
         panel.querySelector('#rbg-buttons-container').append(...rbgButtonsData.map(c => rbgCreateReportButton(c)));
-        if (rbgButtonsData.some(b => b.id !== 'travelApprovalFloatingButton' && b.id !== 'closeLetterFloatingButton') && !document.querySelector(RBG_TARGET_ANCHOR_SELECTOR)) { // MODIFIED: Also exclude closeLetterFloatingButton from this check
+        if (rbgButtonsData.some(b => b.id !== 'travelApprovalFloatingButton' && b.id !== 'closeLetterFloatingButton') && !document.querySelector(RBG_TARGET_ANCHOR_SELECTOR)) {
             console.warn(`RBG Target '${RBG_TARGET_ANCHOR_SELECTOR}' not found.`); showGlobalStatus(`Warn: RBG target (for ProjectID) missing.`,1,7000);
         }
     }
@@ -144,26 +142,24 @@
     }
 
     let travelApprovalModalCreated = false;
-    // MODIFIED: Added logic for closeLetterFloatingButton
     function rbgCreateReportButton(buttonConfig) {
         const button = document.createElement('button'); button.id = buttonConfig.id; button.className = 'mrg-action-button rbg-button';
 
-        // Only add arrow for buttons that open reports
         button.textContent = buttonConfig.text + (
             buttonConfig.id !== 'travelApprovalFloatingButton' &&
-            buttonConfig.id !== 'closeLetterFloatingButton' // NEW: Exclude close letter from arrow
+            buttonConfig.id !== 'closeLetterFloatingButton'
             ? RBG_ARROW_CHAR : ''
         );
 
         if (buttonConfig.id === 'travelApprovalFloatingButton') {
             button.onclick = function() {
-                ilgGatherAllPageData(); // Ensure data is fresh
+                ilgGatherAllPageData();
                 if (!travelApprovalModalCreated) { createTravelApprovalModal(); travelApprovalModalCreated = true; }
                 document.getElementById('travelApprovalModalContainer').style.display = 'flex';
                 initializeTravelApprovalModalLogic(currentPageDataForTravelModal.pjNum, currentPageDataForTravelModal.pjName, currentPageDataForTravelModal.pjScope, currentPageDataForTravelModal.projectHandlerEmail);
                 showGlobalStatus('Travel Approval open.',0,1500);
             };
-        } else if (buttonConfig.id === 'closeLetterFloatingButton') { // NEW: Logic for Close Letter Button
+        } else if (buttonConfig.id === 'closeLetterFloatingButton') {
             button.onclick = function() {
                 const d = ilgGatherAllPageData();
 
@@ -178,12 +174,10 @@
                     return;
                 }
 
-
-                // Get current date for MMDD placeholder
                 const today = new Date();
-                const mm = String(today.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
-                const ddDate = String(today.getDate()).padStart(2, '0'); // Renamed from 'dd' to 'ddDate' to avoid conflict with 'd' variable
-                const MMDD_placeholder_value = `${mm}${ddDate}`; // e.g., "0726"
+                const mm = String(today.getMonth() + 1).padStart(2, '0');
+                const ddDate = String(today.getDate()).padStart(2, '0');
+                const MMDD_placeholder_value = `${mm}${ddDate}`;
 
                 const title = `Close Letter for Project No ${d.pjNum}`;
                 let content = `Dear #clientName#,\n\n` +
@@ -193,18 +187,17 @@
                               `BR,\n` +
                               `#projectHandlerEmail#`;
 
-                // Replace placeholders
-                content = content.replace(/#clientName#/g, d.clientName || "Valued Customer") // Fallback for client name
+                content = content.replace(/#clientName#/g, d.clientName || "Valued Customer")
                                  .replace(/#pjNum#/g, d.pjNum)
                                  .replace(/#pjScope#/g, d.pjScope)
                                  .replace(/MMDD/g, MMDD_placeholder_value)
-                                 .replace(/#projectHandlerEmail#/g, d.projectHandlerEmail || "Your Name/Email"); // Fallback for handler email
+                                 .replace(/#projectHandlerEmail#/g, d.projectHandlerEmail || "Your Name/Email");
 
                 const mailtoLink = `mailto:${d.clientEmail}?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(content)}`;
                 window.open(mailtoLink, '_blank');
                 showGlobalStatus('Opening Close Letter email...',0,1500);
             };
-        } else { // Existing logic for other report buttons (ECD, TAT, NOA, PI)
+        } else {
             button.onclick = function() {
                 const anchor = document.querySelector(RBG_TARGET_ANCHOR_SELECTOR);
                 if (!anchor || !anchor.href) { alert(`RBG Err: Target link for ProjectID not found (selector: ${RBG_TARGET_ANCHOR_SELECTOR}).`); showGlobalStatus(`RBG Err: Target link missing.`,1); return; }
@@ -214,9 +207,9 @@
 
                 if (buttonConfig.id === 'noaLetterFloatingButton') {
                     const d = ilgGatherAllPageData();
-                    if (!d.clientEmail || d.clientEmail === "N/A") { // Added check for NOA mailto
+                    if (!d.clientEmail || d.clientEmail === "N/A") {
                         showGlobalStatus("Client email missing for NOA follow-up.", 1, 4000);
-                        return; // Don't open mailto if no email
+                        return;
                     }
                     const title = `NOA Letter for ${d.pjNum}`;
                     const content = `Dear ${d.clientName || "Valued Customer"},\n\n` +
@@ -233,6 +226,7 @@
         return button;
     }
 
+    // MODIFIED: HTML is simplified according to the latest request.
     const travelApprovalModalHTMLBodyContent = `
         <div class="ta-container">
             <span id="travelApprovalModalCloseButton" class="ta-custom-modal-close-btn">×</span>
@@ -245,11 +239,15 @@
                     <div class="ta-calendar-container"> <div class="ta-calendar-header"> <button id="ta_prevMonthBtn" class="ta-cal-nav-btn">◀</button> <h3 id="ta_monthYearDisplay"></h3> <button id="ta_nextMonthBtn" class="ta-cal-nav-btn">▶</button> </div> <div class="ta-calendar-grid" id="ta_calendarGrid"></div> </div>
                     <div class="ta-links-above-legs"> <a href="https://www.uber.com/global/zh-tw/price-estimate/" target="_blank" rel="noopener noreferrer">[Uber]</a> <a href="https://www.thsrc.com.tw/ArticleContent/a3b630bb-1066-4352-a1ef-58c7b4e8ef7c" target="_blank" rel="noopener noreferrer">[HSR]</a> <a href="https://www.metro.taipei/cp.aspx?n=ECEADC266D7120A7" target="_blank" rel="noopener noreferrer">[MRT]</a> <a href="https://www.mtaxi.com.tw/taxi-fare-estimate/" target="_blank" rel="noopener noreferrer">[mtaxi]</a> </div>
                     <div class="ta-trip-leg-embedded-section">
-                        <label for="ta_newLocation">Add Custom Location (for From/To dropdowns):</label>
-                        <div class="ta-add-location-container"> <input type="text" id="ta_newLocation" placeholder="Enter new location name"> <button id="ta_addCustomLocationBtn" class="ta-action-button-small">Add Location</button> <button id="ta_resetLocationsBtn" class="ta-action-button-secondary ta-action-button-small">Reset Locations</button> </div>
                         <h3 class="ta-section-title-inner">Add/Modify Trip Legs</h3>
-                        <div class="ta-location-pair-selection"> <div> <label for="ta_fromLocationSelect">From:</label> <select id="ta_fromLocationSelect"></select> </div> <div> <label for="ta_toLocationSelect">To:</label> <select id="ta_toLocationSelect"></select> </div> <button id="ta_addLegToListBtn" class="ta-action-button-primary ta-action-button-small">Add Leg</button> </div>
-                        <label>Current Legs:</label> <ul id="ta_currentLegsList" class="ta-list"></ul>
+                        <div class="ta-location-grid-container">
+                             <label for="ta_fromLocationSelect">From:</label>
+                             <label for="ta_toLocationSelect">To:</label>
+                             <select id="ta_fromLocationSelect"></select>
+                             <select id="ta_toLocationSelect"></select>
+                             <input type="text" id="ta_fromLocationCustom" placeholder="Custom From (Overrides Dropdown)">
+                             <input type="text" id="ta_toLocationCustom" placeholder="Custom To (Overrides Dropdown)">
+                        </div>
                     </div>
                     <div class="ta-action-buttons"> <button id="ta_generateEmailBtn" class="ta-action-button-primary ta-action-button-small"><b>Generate & Open Email</b></button> <button id="ta_downloadTextFileBtn" class="ta-action-button-secondary ta-action-button-small">Download Details</button> </div>
                 </div>
@@ -266,35 +264,128 @@
         modalContainer.onclick = (e) => { if (e.target === modalContainer) modalContainer.style.display = 'none'; };
     }
 
+    // MODIFIED: Logic is heavily simplified. No leg list, no custom location storage.
     function initializeTravelApprovalModalLogic(pagePjNum = "N/A", pagePjName = "N/A", pagePjScope = "N/A", pageProjectHandlerEmail = "N/A") {
         const modalContainer = document.getElementById('travelApprovalModalContainer'); if (!modalContainer) return;
-        let selectedDates = [], defaultLocations = ["台北", "關渡賓士大樓", "群通大樓", "新北", "桃園", "新竹", "台中", "台南", "高雄"], allLocations = [], selectedTripLegs = [];
-        const fromSelect = modalContainer.querySelector('#ta_fromLocationSelect'), toSelect = modalContainer.querySelector('#ta_toLocationSelect'), legsUL = modalContainer.querySelector('#ta_currentLegsList'),
-              tripReasonIn = modalContainer.querySelector('#ta_tripReason'), chargeSelect = modalContainer.querySelector('#ta_chargeable'), newLocIn = modalContainer.querySelector('#ta_newLocation'),
-              previewBox = modalContainer.querySelector('#ta_emailPreviewContainer'), previewContent = modalContainer.querySelector('#ta_emailPreviewContent'),
-              linkBox = modalContainer.querySelector('#ta_emailLinkContainer'), linkTextP = modalContainer.querySelector('#ta_emailLinkText'), mailtoA = modalContainer.querySelector('#ta_mailtoLink'),
-              calGrid = modalContainer.querySelector('#ta_calendarGrid'), monthYearDisp = modalContainer.querySelector('#ta_monthYearDisplay');
+
+        // --- State variables ---
+        let selectedDates = [];
+        const defaultLocations = ["北投", "台北", "關渡賓士大樓", "群通大樓", "新北", "桃園", "新竹", "台中", "台南", "高雄"];
+
+        // --- UI Element selection ---
+        const fromSelect = modalContainer.querySelector('#ta_fromLocationSelect'),
+              toSelect = modalContainer.querySelector('#ta_toLocationSelect'),
+              fromCustomInput = modalContainer.querySelector('#ta_fromLocationCustom'),
+              toCustomInput = modalContainer.querySelector('#ta_toLocationCustom'),
+              tripReasonIn = modalContainer.querySelector('#ta_tripReason'),
+              chargeSelect = modalContainer.querySelector('#ta_chargeable'),
+              previewBox = modalContainer.querySelector('#ta_emailPreviewContainer'),
+              previewContent = modalContainer.querySelector('#ta_emailPreviewContent'),
+              linkBox = modalContainer.querySelector('#ta_emailLinkContainer'),
+              linkTextP = modalContainer.querySelector('#ta_emailLinkText'),
+              mailtoA = modalContainer.querySelector('#ta_mailtoLink'),
+              calGrid = modalContainer.querySelector('#ta_calendarGrid'),
+              monthYearDisp = modalContainer.querySelector('#ta_monthYearDisplay');
+
+        // --- Initial setup ---
         tripReasonIn.value = `Travel for project: ${pagePjNum}\nProject Name: ${pagePjName}\nProject Scope: ${pagePjScope}`;
         let curDate = new Date(), curMonth = curDate.getMonth(), curYear = curDate.getFullYear();
-        const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"], storageKey = 'customTripAllLocations_v4_7_2'; // Ensure storageKey is unique if structure changes
-        function loadLocs(){const s=localStorage.getItem(storageKey);allLocations=s?JSON.parse(s):[...defaultLocations];if(!allLocations.includes("北投")){allLocations.unshift("北投");allLocations=[...new Set(allLocations)];}allLocations.sort((a,b)=>(a==="北投")?-1:(b==="北投")?1:a.localeCompare(b));}
-        function saveLocs(){localStorage.setItem(storageKey,JSON.stringify(allLocations));}
-        function addCustomLoc(){const v=newLocIn.value.trim();if(!v){alert('Enter loc.');return;}if(allLocations.some(l=>l.toLowerCase()===v.toLowerCase())){alert(`"${v}" exists.`);return;}allLocations.push(v);loadLocs();saveLocs();newLocIn.value='';alert(`"${v}" added.`);popLocDd(fromSelect,"北投");popLocDd(toSelect);}
-        function resetLocs(){if(confirm("Reset locs & clear legs?")){allLocations=[...defaultLocations];saveLocs();selectedTripLegs=[];renderLegs();popLocDd(fromSelect,"北投");popLocDd(toSelect);alert("Locs reset.");}}
-        function popLocDd(sel,def=""){sel.innerHTML='';if(!def||!allLocations.includes(def))sel.add(new Option("-- Select --",""));allLocations.forEach(l=>sel.add(new Option(l,l)));if(def&&allLocations.includes(def))sel.value=def;}
-        function addLeg(){const f=fromSelect.value,t=toSelect.value;if(!f||!t){alert("Select From & To.");return;}if(f===t){alert("From & To same.");return;}selectedTripLegs.push({from:f,to:t});renderLegs();fromSelect.value="北投";toSelect.value="";}
-        function remLeg(idx){selectedTripLegs.splice(idx,1);renderLegs();}
-        function renderLegs(){legsUL.innerHTML='';if(!selectedTripLegs.length){legsUL.innerHTML='<li>No legs.</li>';return;}selectedTripLegs.forEach((lg,i)=>{const li=document.createElement('li');li.textContent=`${lg.from} → ${lg.to}`;const b=document.createElement('button');b.textContent='X';b.className='ta-remove-leg-btn';b.onclick=()=>remLeg(i);li.appendChild(b);legsUL.appendChild(li);});}
+        const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+        // --- Helper Functions ---
+        function popLocDd(sel, def = "") {
+            sel.innerHTML = '';
+            // Add a blank option for 'To' dropdown
+            if (sel.id === 'ta_toLocationSelect') {
+                sel.add(new Option("-- Select --", ""));
+            }
+            defaultLocations.forEach(l => sel.add(new Option(l, l)));
+            if (def && defaultLocations.includes(def)) {
+                sel.value = def;
+            }
+        }
+
+        // --- Calendar Functions ---
         function renderCal(m,y){calGrid.innerHTML='';monthYearDisp.textContent=`${monthNames[m]} ${y}`;const fD=new Date(y,m,1).getDay(),dIM=new Date(y,m+1,0).getDate();const tD=new Date(),ty=tD.getFullYear(),tm=tD.getMonth(),td=tD.getDate();['S','M','T','W','T','F','S'].forEach(n=>{const c=document.createElement('div');c.className='ta-day-name';c.textContent=n;calGrid.appendChild(c);});for(let i=0;i<fD;i++){const c=document.createElement('div');c.className='ta-empty-day';calGrid.appendChild(c);}for(let d=1;d<=dIM;d++){const cl=document.createElement('div');cl.className='ta-calendar-day';cl.textContent=d;const dS=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;cl.dataset.date=dS;if(selectedDates.includes(dS))cl.classList.add('ta-selected-day');if(y===ty&&m===tm&&d===td)cl.classList.add('ta-today');cl.onclick=()=>toggleDate(dS,cl);calGrid.appendChild(cl);}}
         function toggleDate(dS,cl){const ix=selectedDates.indexOf(dS);if(ix>-1){selectedDates.splice(ix,1);cl.classList.remove('ta-selected-day');}else{selectedDates.push(dS);cl.classList.add('ta-selected-day');}selectedDates.sort();}
         modalContainer.querySelector('#ta_prevMonthBtn').onclick=()=>{curMonth--;if(curMonth<0){curMonth=11;curYear--;}renderCal(curMonth,curYear);};
         modalContainer.querySelector('#ta_nextMonthBtn').onclick=()=>{curMonth++;if(curMonth>11){curMonth=0;curYear++;}renderCal(curMonth,curYear);};
-        modalContainer.querySelector('#ta_addCustomLocationBtn').onclick=addCustomLoc; modalContainer.querySelector('#ta_resetLocationsBtn').onclick=resetLocs; modalContainer.querySelector('#ta_addLegToListBtn').onclick=addLeg;
-        function genEmailTxt(){const r=tripReasonIn.value.trim(),ch=chargeSelect.options[chargeSelect.selectedIndex];let sP=[];(pagePjNum&&pagePjNum!=="N/A")?sP.push(`Travel Approval for pj.${pagePjNum}`):sP.push("Business Trip Request");if(selectedDates.length){let dD;if(selectedDates.length===1)dD=selectedDates[0];else if(selectedDates.length<=3)dD=selectedDates.join(", ");else dD=selectedDates[0]+" etc.";sP.push(dD);}if(selectedTripLegs.length){if(selectedTripLegs.length===1)sP.push(`From ${selectedTripLegs[0].from} to ${selectedTripLegs[0].to}`);else sP.push("Multiple Legs");}const subj=sP.join(" - ");let body=`Dear Manager,\n\nI would like to apply for a business trip. Details:\n\nReason:\n${r}\n\nDates:\n`;selectedDates.length?selectedDates.forEach(d=>body+=`- ${d}\n`):body+="- (No dates)\n";body+="\nLocations/Legs:\n";selectedTripLegs.length?selectedTripLegs.forEach(l=>body+=`From: ${l.from}. To:   ${l.to}\n`):body+="- (No legs)\n";let accT="Charge & Account Allocation:";if(ch.value==="Billable-Inv")accT+=" (Billable Cust Exp):";else if(ch.value==="Billable-NonInv")accT+=" (Other Cust Exp):";body+=`\n${accT}\n- ${ch.text}\n\nPlease approve.\n\nThank you!\n${pageProjectHandlerEmail}`;return{subject:subj,body:body};}
-        modalContainer.querySelector('#ta_generateEmailBtn').onclick=()=>{if(!selectedDates.length){alert('Select date(s)!');return;}if(!selectedTripLegs.length){alert('Add leg(s)!');return;}if(!tripReasonIn.value.trim()){alert('Enter reason!');return;}const e=genEmailTxt();previewContent.textContent=`Subject: ${e.subject}\n------------------\nBody:\n${e.body}`;previewBox.style.display='block';const m=`mailto:?subject=${encodeURIComponent(e.subject)}&body=${encodeURIComponent(e.body)}`;linkTextP.textContent=m;mailtoA.href=m;linkBox.style.display='block';window.open(m,'_blank');};
-        modalContainer.querySelector('#ta_downloadTextFileBtn').onclick=()=>{if(!selectedDates.length&&!selectedTripLegs.length&&!tripReasonIn.value.trim()){alert('Enter details!');return;}const e=genEmailTxt(),r=tripReasonIn.value.trim(),ch=chargeSelect.options[chargeSelect.selectedIndex];let c=`Business Trip Info:\n\nSubject: ${e.subject}\n\nReason: ${r||'(N/A)'}\n\nDates:\n`;selectedDates.length?selectedDates.forEach(d=>c+=`- ${d}\n`):c+="- (None)\n";c+="\nLocations/Legs:\n";selectedTripLegs.length?selectedTripLegs.forEach(l=>c+=`- From: ${l.from}\n  To:   ${l.to}\n`):c+="- (None)\n";let accT="Charge & Account:";if(ch.value==="Billable-Inv")accT+=" (Billable Cust Exp):";else if(ch.value==="Billable-NonInv")accT+=" (Other Cust Exp):";c+=`\n${accT}\n- ${ch.text}\n`;const blb=new Blob([c],{type:'text/plain;charset=utf-8'}),lnk=document.createElement('a');lnk.href=URL.createObjectURL(blb);lnk.download='Trip_Info.txt';document.body.appendChild(lnk);lnk.click();document.body.removeChild(lnk);URL.revokeObjectURL(lnk.href);};
-        loadLocs();popLocDd(fromSelect,"北投");popLocDd(toSelect);renderCal(curMonth,curYear);renderLegs();
+
+        // --- Final Action Functions (Email/Download) ---
+        function genEmailAndData() {
+            const r = tripReasonIn.value.trim();
+            const ch = chargeSelect.options[chargeSelect.selectedIndex];
+            // Override logic for locations
+            const fromLocation = fromCustomInput.value.trim() || fromSelect.value;
+            const toLocation = toCustomInput.value.trim() || toSelect.value;
+
+            // Subject generation
+            let sP = [];
+            (pagePjNum && pagePjNum !== "N/A") ? sP.push(`Travel Approval for pj.${pagePjNum}`) : sP.push("Business Trip Request");
+            if (selectedDates.length) {
+                let dD;
+                if (selectedDates.length === 1) dD = selectedDates[0];
+                else if (selectedDates.length <= 3) dD = selectedDates.join(", ");
+                else dD = selectedDates[0] + " etc.";
+                sP.push(dD);
+            }
+            if (fromLocation && toLocation) {
+                sP.push(`From ${fromLocation} to ${toLocation}`);
+            }
+            const subj = sP.join(" - ");
+
+            // Body generation
+            let body = `Dear Manager,\n\nI would like to apply for a business trip. Details:\n\nReason:\n${r}\n\nDates:\n`;
+            selectedDates.length ? selectedDates.forEach(d => body += `- ${d}\n`) : body += "- (No dates selected)\n";
+            body += "\nLocations/Legs:\n";
+            (fromLocation && toLocation) ? body += `From: ${fromLocation}. To:   ${toLocation}\n` : body += "- (No leg specified)\n";
+            let accT = "Charge & Account Allocation:";
+            if (ch.value === "Billable-Inv") accT += " (Billable Cust Exp):";
+            else if (ch.value === "Billable-NonInv") accT += " (Other Cust Exp):";
+            body += `\n${accT}\n- ${ch.text}\n\nPlease approve.\n\nThank you!\n${pageProjectHandlerEmail}`;
+
+            return { subject: subj, body: body, from: fromLocation, to: toLocation };
+        }
+
+        modalContainer.querySelector('#ta_generateEmailBtn').onclick=()=> {
+            const { subject, body, from, to } = genEmailAndData();
+
+            if (!selectedDates.length) { alert('Please select at least one travel date.'); return; }
+            if (!from || !to) { alert('Please specify a "From" and "To" location.'); return; }
+            if (!tripReasonIn.value.trim()) { alert('Please enter a trip reason.'); return; }
+
+            previewContent.textContent = `Subject: ${subject}\n------------------\nBody:\n${body}`;
+            previewBox.style.display = 'block';
+            const m = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+            linkTextP.textContent = m;
+            mailtoA.href = m;
+            linkBox.style.display = 'block';
+            window.open(m, '_blank');
+        };
+
+        modalContainer.querySelector('#ta_downloadTextFileBtn').onclick=()=> {
+            const { subject, body } = genEmailAndData();
+
+             if (!selectedDates.length && (!fromCustomInput.value.trim() && !toCustomInput.value.trim()) && !tripReasonIn.value.trim()){
+                 alert('Please enter some trip details before downloading.');
+                 return;
+             }
+            const blb = new Blob([body], { type: 'text/plain;charset=utf-8' });
+            const lnk = document.createElement('a');
+            lnk.href = URL.createObjectURL(blb);
+            lnk.download = `${subject.replace(/ /g, '_')}.txt`;
+            document.body.appendChild(lnk);
+            lnk.click();
+            document.body.removeChild(lnk);
+            URL.revokeObjectURL(lnk.href);
+        };
+
+        // --- Initialize UI ---
+        popLocDd(fromSelect, "台北");
+        popLocDd(toSelect);
+        renderCal(curMonth, curYear);
     }
+
 
     function extractClientInfo() {
         const elements = document.querySelectorAll('.div-product-attribute');
@@ -330,7 +421,6 @@
                 data.clientPhone = phoneElement.textContent.replace('Phone:', '').trim();
             }
         }
-        // Return "N/A" explicitly if null or empty, consistent with other extractions
         return {
             clientName: data.clientName || "N/A",
             clientEmail: data.clientEmail || "N/A"
@@ -425,22 +515,27 @@
         #travelApprovalModalContainer .ta-cal-nav-btn:hover { background-color: #e8e8e8; border-color: #999999; }
         #travelApprovalModalContainer .ta-action-button-primary { background-color: #673ab7; color: white; border-color: #5e35b1; }
         #travelApprovalModalContainer .ta-action-button-primary:hover { background-color: #5e35b1; }
-        #travelApprovalModalContainer .ta-action-buttons button { width: 97%; } /* As per your v4.6 */
-        #travelApprovalModalContainer .ta-add-location-container { display: flex; gap: 5px; align-items: center; margin-bottom: 10px; }
-        #travelApprovalModalContainer .ta-add-location-container input { flex-grow: 1; margin-bottom: 0; }
-        #travelApprovalModalContainer .ta-add-location-container button { width: auto; margin-left: 0px; }
-        #travelApprovalModalContainer .ta-location-pair-selection button { width: auto; margin-left: 5px; }
-        #travelApprovalModalContainer .ta-list { list-style: none; padding: 5px; margin: 5px 0 10px 0; overflow-y: auto; border: 1px solid #d0d0d0; border-radius: 2px; background-color: #f9f9f9; max-height: 100px; }
-        #travelApprovalModalContainer .ta-list li { background: #fff; border-bottom: 1px solid #e0e0e0; padding: 3px 5px; margin-bottom: 3px; border-radius: 2px; display: flex; justify-content: space-between; align-items: center; font-size: 1em; }
-        #travelApprovalModalContainer .ta-list li:last-child { margin-bottom: 0; border-bottom: none; }
-        #travelApprovalModalContainer .ta-remove-leg-btn { background-color: transparent; color: #cc0000; border: none; font-size: 1em; font-weight: bold; padding: 0 4px; margin-left: 5px; cursor: pointer; border-radius: 2px; line-height: 1; }
-        #travelApprovalModalContainer .ta-remove-leg-btn:hover { background-color: #f0f0f0; }
+        #travelApprovalModalContainer .ta-action-buttons { display: flex; justify-content: center; gap: 10px; margin-top: 15px; }
+        #travelApprovalModalContainer .ta-action-buttons button { width: auto; padding-left: 15px; padding-right: 15px; margin-bottom: 0;}
         #travelApprovalModalContainer .ta-trip-leg-embedded-section { padding: 10px; border: 1px solid #d0d0d0; border-radius: 2px; margin-top: 15px; margin-bottom: 15px; background-color: #e9e9e9; }
         #travelApprovalModalContainer .ta-section-title-inner { margin-top: 0; margin-bottom: 8px; font-size: 1em; font-weight: bold; color: #333; padding-bottom: 2px; border-bottom: 1px solid #c5c5c5; }
         #travelApprovalModalContainer .ta-links-above-legs { margin-bottom: 8px; }
         #travelApprovalModalContainer .ta-links-above-legs a { margin-right: 5px; font-size: 1.2em; }
-        #travelApprovalModalContainer .ta-location-pair-selection { display: flex; gap: 10px; margin-bottom: 10px; align-items: flex-end; }
-        #travelApprovalModalContainer .ta-location-pair-selection > div { flex: 1; }
+        #travelApprovalModalContainer .ta-location-grid-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 5px 10px;
+            align-items: center;
+        }
+        #travelApprovalModalContainer .ta-location-grid-container label {
+            margin-bottom: 0;
+            grid-column: span 1;
+        }
+        #travelApprovalModalContainer .ta-location-grid-container select,
+        #travelApprovalModalContainer .ta-location-grid-container input {
+            margin-bottom: 0;
+            grid-column: span 1;
+        }
         #travelApprovalModalContainer .ta-preview-box { margin-top: 15px; background-color: #e9e9e9; border: 1px solid #d0d0d0; border-radius: 2px; padding: 8px; }
         #travelApprovalModalContainer #ta_emailPreviewContent { background-color: #fff; border: 1px solid #c0c0c0; padding: 5px; white-space: pre-wrap; word-wrap: break-word; font-family: Consolas, monospace; font-size: 10px; max-height: 150px; overflow-y: auto; border-radius: 2px; }
         #travelApprovalModalContainer #ta_emailLinkContainer a { color: #0066cc; text-decoration: none; }
@@ -464,13 +559,11 @@
             if (!document.getElementById('mergedUtilityPanel')) createUI();
             const panel = document.getElementById('mergedUtilityPanel');
             if (panel) panel.style.display = 'block';
-            console.log("Merged Utility Panel (v4.7.3): UI created."); // MODIFIED: Updated log version
+            console.log("Merged Utility Panel (v4.7.6): UI created.");
         } else {
             console.log("Merged Utility Panel: Required page structure not found.");
         }
     }
-    // Ensure the script waits for the page to be sufficiently loaded.
-    // Using a simple timeout or DOMContentLoaded might be more robust if init() runs too early.
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);
     } else {
