@@ -619,13 +619,13 @@
         return parseTagsInput(value).join(', ');
     }
 
-    function sanitizeDraftPart(value) {
+    function encodeDraftPart(value) {
         return encodeURIComponent(String(value || '_').trim());
     }
 
     function getDraftKey(note, projectNumber, fileNo) {
-        if (note && note.id) return `${DRAFT_KEY_PREFIX}edit__${sanitizeDraftPart(note.id)}`;
-        return `${DRAFT_KEY_PREFIX}new__${sanitizeDraftPart(fileNo || '_')}`;
+        if (note && note.id) return `${DRAFT_KEY_PREFIX}edit__${encodeDraftPart(note.id)}`;
+        return `${DRAFT_KEY_PREFIX}new__${encodeDraftPart(fileNo || '_')}`;
     }
 
     function saveDraftText(draftKey, value) {
@@ -676,10 +676,10 @@
     function renderMarkdownInline(text) {
         const escaped = escapeHtml(text);
         return escaped
-            .replace(/`([^`]+)`/g, '<code>$1</code>')
-            .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-            .replace(/\*([^*]+)\*/g, '<em>$1</em>')
-            .replace(/~~([^~]+)~~/g, '<del>$1</del>');
+            .replace(/`([^`]+?)`/g, '<code>$1</code>')
+            .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+            .replace(/(?<!\*)\*([^*\n]+?)\*(?!\*)/g, '<em>$1</em>')
+            .replace(/~~(.+?)~~/g, '<del>$1</del>');
     }
 
     function renderMarkdown(text) {
