@@ -111,8 +111,8 @@
             position:fixed;
             inset:0;
             background:rgba(20,26,34,.36);
-            backdrop-filter:blur(14px) saturate(140%);
-            -webkit-backdrop-filter:blur(14px) saturate(140%);
+            backdrop-filter:blur(12px) saturate(140%);
+            -webkit-backdrop-filter:blur(12px) saturate(140%);
             z-index:99999;
             display:flex;
             align-items:center;
@@ -249,8 +249,6 @@
             overflow:hidden;
             background:rgba(255,255,255,.9);
             border:1px solid rgba(255,255,255,.7);
-            backdrop-filter:blur(18px) saturate(150%);
-            -webkit-backdrop-filter:blur(18px) saturate(150%);
             box-shadow:0 30px 72px rgba(15,23,42,.24);
             color:#1d1d1f;
             font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;
@@ -504,17 +502,17 @@
         .ffn-memo-tag.ffn-note-custom-tag:nth-child(4n+1){
             background:#e9f7ef;
             border-color:#caead7;
-            color:#2f7d57;
+            color:#1f6a46;
         }
         .ffn-memo-tag.ffn-note-custom-tag:nth-child(4n+2){
             background:#fff4e8;
             border-color:#f8dec0;
-            color:#9a5b1e;
+            color:#7a460f;
         }
         .ffn-memo-tag.ffn-note-custom-tag:nth-child(4n+3){
             background:#f2eeff;
             border-color:#ddd2ff;
-            color:#5d47b8;
+            color:#4931a1;
         }
         .ffn-memo-time{
             font-size:12px;
