@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Flex 📁 Folder Copy & 📝 Quick Notes
 // @namespace    fisher-flex-folder-notes
-// @version      1.1.0
+// @version      1.2.0
 // @description  在 Flex Dashboard 每列案件旁加上「複製資料夾名稱」按鈕與「快速筆記」功能，支援依時間/專案瀏覽歷史筆記。
 // @match        https://portal.ul.com/Dashboard*
 // @grant        GM_addStyle
@@ -21,6 +21,8 @@
     const NOTE_CONTEXT_COLUMNS = ["Project Number", "Project Name", "File No"];
 
     const STORAGE_KEY = 'flex_folder_notes_v1';
+    const DRAFT_KEY_PREFIX = `${STORAGE_KEY}_draft__`;
+    const DRAFT_DEBOUNCE_MS = 500;
     const FLASH_MS = 300;
     const KENDO_RETRY_MS = 300;
     const GRID_OBSERVER_RETRY_MS = 500;
@@ -137,6 +139,20 @@
             font-family:inherit;
         }
         .ffn-note-editor textarea:focus{ border-color:#6366f1; }
+        .ffn-note-tags-input{
+            margin-top:10px;
+            width:100%;
+            box-sizing:border-box;
+            border:1px solid #e5e7eb;
+            border-radius:8px;
+            padding:8px 10px;
+            font-size:13px;
+            color:#111;
+            font-family:inherit;
+            outline:none;
+            transition:border-color .15s;
+        }
+        .ffn-note-tags-input:focus{ border-color:#6366f1; }
         .ffn-actions{
             margin-top:12px;
             display:flex;
@@ -327,9 +343,48 @@
             font-size:14px;
             line-height:1.65;
             color:#1a1a1a;
-            white-space:pre-wrap;
+            white-space:normal;
             word-break:break-word;
             margin-bottom:10px;
+        }
+        .ffn-memo-content > :first-child{ margin-top:0; }
+        .ffn-memo-content > :last-child{ margin-bottom:0; }
+        .ffn-memo-content p{ margin:.5em 0; }
+        .ffn-memo-content h1,.ffn-memo-content h2,.ffn-memo-content h3,
+        .ffn-memo-content h4,.ffn-memo-content h5,.ffn-memo-content h6{
+            margin:.7em 0 .4em;
+            line-height:1.35;
+        }
+        .ffn-memo-content blockquote{
+            margin:.6em 0;
+            padding:.1em .8em;
+            border-left:3px solid #d1d5db;
+            color:#4b5563;
+            background:#f9fafb;
+        }
+        .ffn-memo-content ul,.ffn-memo-content ol{
+            margin:.5em 0;
+            padding-left:1.3em;
+        }
+        .ffn-memo-content code{
+            font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,'Liberation Mono','Courier New',monospace;
+            background:#f3f4f6;
+            border-radius:4px;
+            padding:1px 5px;
+            font-size:12px;
+        }
+        .ffn-memo-content pre{
+            margin:.6em 0;
+            background:#111827;
+            color:#f9fafb;
+            border-radius:8px;
+            padding:10px;
+            overflow:auto;
+        }
+        .ffn-memo-content pre code{
+            background:transparent;
+            color:inherit;
+            padding:0;
         }
         .ffn-memo-footer{
             display:flex;
@@ -357,6 +412,10 @@
             max-width:180px;
             overflow:hidden;
             text-overflow:ellipsis;
+        }
+        .ffn-memo-tag.ffn-note-custom-tag{
+            background:#eef2ff;
+            color:#4338ca;
         }
         .ffn-memo-time{
             font-size:12px;
@@ -536,6 +595,176 @@
         if (editorRoot && editorRoot.parentNode) editorRoot.parentNode.remove();
     }
 
+    function parseTagsInput(value) {
+        if (!value) return [];
+        const source = Array.isArray(value) ? value.join(',') : String(value);
+        const tags = source
+            .split(/[,\n]/)
+            .map(tag => tag.trim().replace(/^#/, ''))
+            .filter(Boolean)
+            .slice(0, 20);
+        const unique = [];
+        const existed = new Set();
+        tags.forEach(tag => {
+            const key = tag.toLowerCase();
+            if (existed.has(key)) return;
+            existed.add(key);
+            unique.push(tag);
+        });
+        return unique;
+    }
+
+    function formatTagsForInput(value) {
+        return parseTagsInput(value).join(', ');
+    }
+
+    function sanitizeDraftPart(value) {
+        return encodeURIComponent(String(value || '_').trim() || '_');
+    }
+
+    function getDraftKey(note, projectNumber, fileNo) {
+        if (note && note.id) return `${DRAFT_KEY_PREFIX}edit__${sanitizeDraftPart(note.id)}`;
+        return `${DRAFT_KEY_PREFIX}new__${sanitizeDraftPart(fileNo || '_')}`;
+    }
+
+    function saveDraftText(draftKey, value) {
+        localStorage.setItem(draftKey, value || '');
+    }
+
+    function loadDraftText(draftKey) {
+        return localStorage.getItem(draftKey);
+    }
+
+    function clearDraftText(draftKey) {
+        localStorage.removeItem(draftKey);
+    }
+
+    function debounce(fn, delay) {
+        let timer = null;
+        const wrapped = (...args) => {
+            if (timer) clearTimeout(timer);
+            timer = window.setTimeout(() => {
+                timer = null;
+                fn(...args);
+            }, delay);
+        };
+        wrapped.cancel = () => {
+            if (!timer) return;
+            clearTimeout(timer);
+            timer = null;
+        };
+        return wrapped;
+    }
+
+    function escapeHtml(text) {
+        return String(text || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function renderMarkdownInline(text) {
+        return text
+            .replace(/`([^`]+)`/g, '<code>$1</code>')
+            .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+            .replace(/~~([^~]+)~~/g, '<del>$1</del>');
+    }
+
+    function renderMarkdown(text) {
+        const normalized = String(text || '').replace(/\r\n?/g, '\n');
+        if (!normalized.trim()) return '';
+
+        const escaped = escapeHtml(normalized);
+        const lines = escaped.split('\n');
+        const html = [];
+        let inUl = false;
+        let inOl = false;
+        let inCode = false;
+
+        const closeLists = () => {
+            if (inUl) {
+                html.push('</ul>');
+                inUl = false;
+            }
+            if (inOl) {
+                html.push('</ol>');
+                inOl = false;
+            }
+        };
+
+        lines.forEach(line => {
+            if (/^```/.test(line)) {
+                closeLists();
+                html.push(inCode ? '</code></pre>' : '<pre><code>');
+                inCode = !inCode;
+                return;
+            }
+
+            if (inCode) {
+                html.push(`${line}\n`);
+                return;
+            }
+
+            const headingMatch = line.match(/^(#{1,6})\s+(.*)$/);
+            if (headingMatch) {
+                closeLists();
+                const level = headingMatch[1].length;
+                html.push(`<h${level}>${renderMarkdownInline(headingMatch[2])}</h${level}>`);
+                return;
+            }
+
+            const ulMatch = line.match(/^[-*+]\s+(.*)$/);
+            if (ulMatch) {
+                if (inOl) {
+                    html.push('</ol>');
+                    inOl = false;
+                }
+                if (!inUl) {
+                    html.push('<ul>');
+                    inUl = true;
+                }
+                html.push(`<li>${renderMarkdownInline(ulMatch[1])}</li>`);
+                return;
+            }
+
+            const olMatch = line.match(/^\d+\.\s+(.*)$/);
+            if (olMatch) {
+                if (inUl) {
+                    html.push('</ul>');
+                    inUl = false;
+                }
+                if (!inOl) {
+                    html.push('<ol>');
+                    inOl = true;
+                }
+                html.push(`<li>${renderMarkdownInline(olMatch[1])}</li>`);
+                return;
+            }
+
+            const quoteMatch = line.match(/^&gt;\s?(.*)$/);
+            if (quoteMatch) {
+                closeLists();
+                html.push(`<blockquote>${renderMarkdownInline(quoteMatch[1])}</blockquote>`);
+                return;
+            }
+
+            if (!line.trim()) {
+                closeLists();
+                return;
+            }
+
+            closeLists();
+            html.push(`<p>${renderMarkdownInline(line)}</p>`);
+        });
+
+        if (inCode) html.push('</code></pre>');
+        closeLists();
+        return html.join('');
+    }
+
     function openNoteEditor(options) {
         const existing = document.querySelector('.ffn-note-editor-backdrop');
         if (existing) existing.remove();
@@ -547,6 +776,7 @@
         const projectNumber = note ? note.projectNumber : (rowData['Project Number'] || '');
         const projectName = note ? note.projectName : (rowData['Project Name'] || '');
         const fileNo = note ? note.fileNo : (rowData['File No'] || '');
+        const draftKey = getDraftKey(note, projectNumber, fileNo);
 
         const backdrop = document.createElement('div');
         backdrop.className = 'ffn-note-editor-backdrop';
@@ -563,7 +793,17 @@
 
         const textarea = document.createElement('textarea');
         textarea.placeholder = '請輸入筆記內容...';
-        textarea.value = note ? (note.text || '') : (options.initialText || '');
+        const savedDraft = loadDraftText(draftKey);
+        textarea.value = savedDraft !== null ? savedDraft : (note ? (note.text || '') : (options.initialText || ''));
+
+        const tagsInput = document.createElement('input');
+        tagsInput.type = 'text';
+        tagsInput.className = 'ffn-note-tags-input';
+        tagsInput.placeholder = '標籤（以逗號分隔，例如：urgent, follow-up）';
+        tagsInput.value = note ? formatTagsForInput(note.tags) : '';
+
+        const debouncedSaveDraft = debounce(() => saveDraftText(draftKey, textarea.value), DRAFT_DEBOUNCE_MS);
+        textarea.addEventListener('input', debouncedSaveDraft);
 
         const actions = document.createElement('div');
         actions.className = 'ffn-actions';
@@ -575,13 +815,22 @@
         saveBtn.className = 'ffn-primary';
         saveBtn.textContent = '儲存';
 
-        cancelBtn.addEventListener('click', () => closeNoteEditor(box));
+        cancelBtn.addEventListener('click', () => {
+            debouncedSaveDraft.cancel();
+            saveDraftText(draftKey, textarea.value);
+            closeNoteEditor(box);
+        });
         backdrop.addEventListener('click', (e) => {
-            if (e.target === backdrop) closeNoteEditor(box);
+            if (e.target === backdrop) {
+                debouncedSaveDraft.cancel();
+                saveDraftText(draftKey, textarea.value);
+                closeNoteEditor(box);
+            }
         });
 
         saveBtn.addEventListener('click', () => {
             const text = textarea.value.trim();
+            const tags = parseTagsInput(tagsInput.value);
             if (!text) {
                 alert('請輸入筆記內容');
                 return;
@@ -597,6 +846,7 @@
                         projectName,
                         fileNo,
                         text,
+                        tags,
                         updatedAt: now
                     };
                 }
@@ -607,17 +857,20 @@
                     projectName,
                     fileNo,
                     text,
+                    tags,
                     createdAt: now,
                     updatedAt: now
                 });
             }
             saveStore(store);
+            debouncedSaveDraft.cancel();
+            clearDraftText(draftKey);
             closeNoteEditor(box);
             renderNotesList();
         });
 
         actions.append(cancelBtn, saveBtn);
-        box.append(title, info, textarea, actions);
+        box.append(title, info, textarea, tagsInput, actions);
         backdrop.appendChild(box);
         document.body.appendChild(backdrop);
     }
@@ -633,6 +886,7 @@
         const fromDate = notesPanelEl.querySelector('#ffn-date-from').value;
         const toDate = notesPanelEl.querySelector('#ffn-date-to').value;
         const keyword = notesPanelEl.querySelector('#ffn-keyword').value.trim().toLowerCase();
+        const tagKeyword = notesPanelEl.querySelector('#ffn-tag-filter').value.trim().replace(/^#/, '').toLowerCase();
 
         const filtered = notes.filter(note => {
             const created = new Date(note.createdAt);
@@ -648,6 +902,10 @@
             if (keyword) {
                 const searchableText = `${note.text || ''} ${(note.projectName || '')} ${(note.projectNumber || '')}`.toLowerCase();
                 if (!searchableText.includes(keyword)) return false;
+            }
+            if (tagKeyword) {
+                const tags = parseTagsInput(note.tags);
+                if (!tags.some(tag => tag.toLowerCase().includes(tagKeyword))) return false;
             }
             return true;
         });
@@ -725,7 +983,7 @@
 
             const content = document.createElement('div');
             content.className = 'ffn-memo-content';
-            content.textContent = note.text || '';
+            content.innerHTML = renderMarkdown(note.text || '');
 
             const footer = document.createElement('div');
             footer.className = 'ffn-memo-footer';
@@ -746,6 +1004,12 @@
                 nameTag.textContent = note.projectName;
                 meta.appendChild(nameTag);
             }
+            parseTagsInput(note.tags).forEach(noteTag => {
+                const customTag = document.createElement('span');
+                customTag.className = 'ffn-memo-tag ffn-note-custom-tag';
+                customTag.textContent = `#${noteTag}`;
+                meta.appendChild(customTag);
+            });
 
             const time = document.createElement('span');
             time.className = 'ffn-memo-time';
@@ -807,6 +1071,7 @@
                     <div class="ffn-sidebar-label">篩選</div>
                     <input id="ffn-project-filter" type="text" placeholder="🔍 專案編號">
                     <input id="ffn-keyword" type="text" placeholder="🔍 關鍵字搜尋">
+                    <input id="ffn-tag-filter" type="text" placeholder="🏷️ 標籤（例如：urgent）">
                 </div>
                 <div class="ffn-sidebar-section">
                     <div class="ffn-sidebar-label">日期範圍</div>
