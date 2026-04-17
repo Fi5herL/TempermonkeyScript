@@ -23,6 +23,7 @@
     const STORAGE_KEY = 'flex_folder_notes_v1';
     const DRAFT_KEY_PREFIX = `${STORAGE_KEY}_draft__`;
     const DRAFT_DEBOUNCE_MS = 500;
+    const DRAFT_KEY_EMPTY_PLACEHOLDER = '_';
     const MAX_NOTE_TAGS = 20;
     const FLASH_MS = 300;
     const KENDO_RETRY_MS = 300;
@@ -620,12 +621,12 @@
     }
 
     function encodeDraftPart(value) {
-        return encodeURIComponent(String(value || '_').trim());
+        return encodeURIComponent(String(value || DRAFT_KEY_EMPTY_PLACEHOLDER).trim());
     }
 
     function getDraftKey(note, projectNumber, fileNo) {
         if (note && note.id) return `${DRAFT_KEY_PREFIX}edit__${encodeDraftPart(note.id)}`;
-        return `${DRAFT_KEY_PREFIX}new__${encodeDraftPart(fileNo || '_')}`;
+        return `${DRAFT_KEY_PREFIX}new__${encodeDraftPart(fileNo || DRAFT_KEY_EMPTY_PLACEHOLDER)}`;
     }
 
     function saveDraftText(draftKey, value) {
@@ -645,6 +646,11 @@
         if (savedDraft !== null) return savedDraft;
         if (note) return note.text || '';
         return options.initialText || '';
+    }
+
+    function flushDraftSave(debouncedSaveDraft, draftKey, textarea) {
+        debouncedSaveDraft.cancel();
+        saveDraftText(draftKey, textarea.value);
     }
 
     function debounce(fn, delay) {
@@ -691,6 +697,7 @@
         let inUl = false;
         let inOl = false;
         let inCode = false;
+        let codeLines = [];
 
         const closeLists = () => {
             if (inUl) {
@@ -706,13 +713,16 @@
         lines.forEach(line => {
             if (/^```/.test(line)) {
                 closeLists();
-                html.push(inCode ? '</code></pre>' : '<pre><code>');
+                if (inCode) {
+                    html.push(`<pre><code>${codeLines.join('\n')}</code></pre>`);
+                    codeLines = [];
+                }
                 inCode = !inCode;
                 return;
             }
 
             if (inCode) {
-                html.push(`${escapeHtml(line)}\n`);
+                codeLines.push(escapeHtml(line));
                 return;
             }
 
@@ -768,7 +778,7 @@
             html.push(`<p>${renderMarkdownInline(line)}</p>`);
         });
 
-        if (inCode) html.push('</code></pre>');
+        if (inCode) html.push(`<pre><code>${codeLines.join('\n')}</code></pre>`);
         closeLists();
         return html.join('');
     }
@@ -823,14 +833,12 @@
         saveBtn.textContent = '儲存';
 
         cancelBtn.addEventListener('click', () => {
-            debouncedSaveDraft.cancel();
-            saveDraftText(draftKey, textarea.value);
+            flushDraftSave(debouncedSaveDraft, draftKey, textarea);
             closeNoteEditor(box);
         });
         backdrop.addEventListener('click', (e) => {
             if (e.target === backdrop) {
-                debouncedSaveDraft.cancel();
-                saveDraftText(draftKey, textarea.value);
+                flushDraftSave(debouncedSaveDraft, draftKey, textarea);
                 closeNoteEditor(box);
             }
         });
