@@ -100,11 +100,7 @@
     return text;
   }
 
-  function sanitizeFolderPart(text) {
-    return String(text || '').replace(INVALID_FOLDER_CHARS_RE, '_').trim();
-  }
-
-  function sanitizeFolderName(text) {
+  function sanitizeFolderText(text) {
     return String(text || '').replace(INVALID_FOLDER_CHARS_RE, '_').trim();
   }
 
@@ -121,7 +117,7 @@
   }
 
   function cellText(cells, idx) {
-    if (idx == null || idx < 0 || idx >= cells.length) return '';
+    if (idx === null || idx === undefined || idx < 0 || idx >= cells.length) return '';
     return (cells[idx].textContent || '').trim();
   }
 
@@ -135,16 +131,19 @@
     const company = cellText(cells, headers[GRID_HEADER_FOR.customer]);
     const dateCreatedRaw = cellText(cells, headers[FOLDER_HEADER_FOR.dateCreated]);
 
-    const company10 = sanitizeFolderPart(company.slice(0, 10));
+    const company10 = sanitizeFolderText(company.slice(0, 10));
     const dateCreated = normalizeDateYYYYMMDD(dateCreatedRaw);
 
     const folder = `${fileNumber}-${projectNumber}-${orderLines}-${company10}-${dateCreated}`;
-    return sanitizeFolderName(folder);
+    return sanitizeFolderText(folder);
   }
 
   async function onCopyFolderClick(tr, button) {
     const folderName = buildFolderNameFromRow(tr);
-    if (!folderName || /^-+$/.test(folderName)) return;
+    if (!folderName || /^-+$/.test(folderName)) {
+      console.warn('[Flex Folder Copy Helper] Empty folder name. Check configured headers.');
+      return;
+    }
 
     try {
       await navigator.clipboard.writeText(folderName);
