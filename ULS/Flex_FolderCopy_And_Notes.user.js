@@ -110,7 +110,7 @@
         .ffn-note-editor-backdrop{
             position:fixed;
             inset:0;
-            background:rgba(20,26,34,.38);
+            background:rgba(20,26,34,.36);
             backdrop-filter:blur(14px) saturate(140%);
             -webkit-backdrop-filter:blur(14px) saturate(140%);
             z-index:99999;
