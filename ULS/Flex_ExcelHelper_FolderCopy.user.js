@@ -19,7 +19,7 @@
   };
 
   const FOLDER_HEADER_FOR = {
-    fileNumber: 'File Number',
+    fileNumber: 'File No',
     orderLines: 'Order Lines',
     dateCreated: 'Date Project Created',
   };
