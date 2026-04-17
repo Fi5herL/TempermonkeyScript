@@ -666,7 +666,8 @@
     }
 
     function renderMarkdownInline(text) {
-        return text
+        const escaped = escapeHtml(text);
+        return escaped
             .replace(/`([^`]+)`/g, '<code>$1</code>')
             .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
             .replace(/\*([^*]+)\*/g, '<em>$1</em>')
@@ -677,8 +678,7 @@
         const normalized = String(text || '').replace(/\r\n?/g, '\n');
         if (!normalized.trim()) return '';
 
-        const escaped = escapeHtml(normalized);
-        const lines = escaped.split('\n');
+        const lines = normalized.split('\n');
         const html = [];
         let inUl = false;
         let inOl = false;
@@ -704,7 +704,7 @@
             }
 
             if (inCode) {
-                html.push(`${line}\n`);
+                html.push(`${escapeHtml(line)}\n`);
                 return;
             }
 
@@ -744,7 +744,7 @@
                 return;
             }
 
-            const quoteMatch = line.match(/^&gt;\s?(.*)$/);
+            const quoteMatch = line.match(/^>\s?(.*)$/);
             if (quoteMatch) {
                 closeLists();
                 html.push(`<blockquote>${renderMarkdownInline(quoteMatch[1])}</blockquote>`);
