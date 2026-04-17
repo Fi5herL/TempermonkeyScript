@@ -22,10 +22,13 @@
 
     const STORAGE_KEY = 'flex_folder_notes_v1';
     const FLASH_MS = 300;
+    const KENDO_RETRY_MS = 300;
+    const GRID_OBSERVER_RETRY_MS = 500;
 
     let notesOverlayEl = null;
     let notesPanelEl = null;
     let gridObserver = null;
+    let uuidCounter = 0;
 
     GM_addStyle(`
         .ffn-row-btn{
@@ -159,7 +162,7 @@
         const orderLines = sanitizeFolderPart(rowData['Order Lines']);
         const companyName = sanitizeFolderPart(rowData['Company Name']).slice(0, 10);
         const createdDate = normalizeDateToYMD(rowData['Date Project Created']);
-        return `${fileNo}-${projectNumber}-${orderLines}-${companyName}-${createdDate}`.replace(/[<>:"/\\|?*]/g, '_');
+        return `${fileNo}-${projectNumber}-${orderLines}-${companyName}-${createdDate}`;
     }
 
     async function copyText(text) {
@@ -196,7 +199,11 @@
 
     function createUUID() {
         if (window.crypto && typeof window.crypto.randomUUID === 'function') return window.crypto.randomUUID();
-        return `ffn-${Date.now()}-${Math.random().toString(16).slice(2, 10)}`;
+        uuidCounter += 1;
+        const randomChunk = window.crypto && typeof window.crypto.getRandomValues === 'function'
+            ? Array.from(window.crypto.getRandomValues(new Uint32Array(2))).map(n => n.toString(16)).join('')
+            : `${Math.random().toString(16).slice(2, 10)}${Math.random().toString(16).slice(2, 10)}`;
+        return `ffn-${Date.now()}-${uuidCounter}-${randomChunk}`;
     }
 
     function formatDateTime(value) {
@@ -449,7 +456,7 @@
 
         notesPanelEl.querySelector('#ffn-close-panel').addEventListener('click', () => notesOverlayEl.remove());
         notesPanelEl.querySelector('#ffn-today-log').addEventListener('click', () => {
-            const dateStr = new Date().toISOString().slice(0, 10);
+            const dateStr = normalizeDateToYMD(new Date());
             openNoteEditor({ rowData: {}, initialText: `${dateStr} 每日紀錄` });
         });
 
@@ -522,7 +529,7 @@
     function observeGridRows() {
         const tbody = document.querySelector(`${GRID_CONTAINER_SELECTOR} ${GRID_CONTENT_SELECTOR} tbody`);
         if (!tbody) {
-            setTimeout(observeGridRows, 500);
+            setTimeout(observeGridRows, GRID_OBSERVER_RETRY_MS);
             return;
         }
 
@@ -534,9 +541,9 @@
 
     (function bindKendo() {
         const $ = window.jQuery;
-        if (!$) return setTimeout(bindKendo, 300);
+        if (!$) return setTimeout(bindKendo, KENDO_RETRY_MS);
         const grid = $(GRID_CONTAINER_SELECTOR).data('kendoGrid');
-        if (!grid) return setTimeout(bindKendo, 300);
+        if (!grid) return setTimeout(bindKendo, KENDO_RETRY_MS);
         grid.bind('dataBound', () => { attachButtons(); observeGridRows(); });
     })();
 
