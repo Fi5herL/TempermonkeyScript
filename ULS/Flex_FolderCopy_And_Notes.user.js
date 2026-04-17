@@ -14,7 +14,7 @@
 
     const GRID_CONTAINER_SELECTOR = '#projectDashboardGrid';
     const GRID_HEADER_SELECTOR = '.k-grid-header';
-    const GRID_CONTENT_SELECTOR = '.k-grid-content.k-auto-scrollable';
+    const GRID_CONTENT_SELECTOR = '.k-grid-content';
     const GRID_ROW_SELECTOR = 'tr:not(.k-grouping-row):not(.k-filter-row):not(.k-grid-norecords)';
 
     const FOLDER_COLUMNS = ["File No", "Project Number", "Order Lines", "Company Name", "Date Project Created"];
@@ -24,6 +24,8 @@
     const FLASH_MS = 300;
     const KENDO_RETRY_MS = 300;
     const GRID_OBSERVER_RETRY_MS = 500;
+    const COPY_BUTTON_LEFT_PX = 4;
+    const NOTE_BUTTON_LEFT_PX = 32;
 
     let notesOverlayEl = null;
     let notesPanelEl = null;
@@ -49,8 +51,8 @@
             padding:0;
             z-index:2;
         }
-        .ffn-rowcopy{ left:-56px; }
-        .ffn-rownote{ left:-28px; }
+        .ffn-rowcopy{ left:${COPY_BUTTON_LEFT_PX}px; }
+        .ffn-rownote{ left:${NOTE_BUTTON_LEFT_PX}px; }
         .ffn-row-btn:hover{ background:#f3f4f6; }
         .ffn-copy-flash{ background:#d1fae5 !important; }
 
@@ -102,7 +104,9 @@
         if (!gridContainer) return null;
         const headerDiv = gridContainer.querySelector(GRID_HEADER_SELECTOR);
         if (!headerDiv) return null;
-        const headerTr = headerDiv.querySelector('tr');
+        const headerRows = Array.from(headerDiv.querySelectorAll('tr'))
+            .filter(tr => tr.querySelectorAll('th').length > 0);
+        const headerTr = headerRows[headerRows.length - 1] || null;
         if (!headerTr) return null;
         const thElements = Array.from(headerTr.querySelectorAll('th'));
         const columnIndexMap = new Map();
@@ -112,7 +116,13 @@
                 const th = thElements[i];
                 const textContent = th.textContent.trim().toLowerCase();
                 const titleAttribute = th.getAttribute('title');
-                if (textContent.includes(name.toLowerCase()) || (titleAttribute && titleAttribute.toLowerCase().includes(name.toLowerCase()))) {
+                const dataTitleAttribute = th.getAttribute('data-title');
+                const target = name.toLowerCase();
+                if (
+                    textContent.includes(target) ||
+                    (titleAttribute && titleAttribute.toLowerCase().includes(target)) ||
+                    (dataTitleAttribute && dataTitleAttribute.toLowerCase().includes(target))
+                ) {
                     columnIndexMap.set(name, i);
                     break;
                 }
