@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Flex 📁 Folder Copy & 📝 Quick Notes
 // @namespace    fisher-flex-folder-notes
-// @version      1.0.0
+// @version      1.1.0
 // @description  在 Flex Dashboard 每列案件旁加上「複製資料夾名稱」按鈕與「快速筆記」功能，支援依時間/專案瀏覽歷史筆記。
 // @match        https://portal.ul.com/Dashboard*
 // @grant        GM_addStyle
@@ -24,8 +24,6 @@
     const FLASH_MS = 300;
     const KENDO_RETRY_MS = 300;
     const GRID_OBSERVER_RETRY_MS = 500;
-    const COPY_BUTTON_LEFT_PX = 4;
-    const NOTE_BUTTON_LEFT_PX = 32;
 
     let notesOverlayEl = null;
     let notesPanelEl = null;
@@ -33,10 +31,38 @@
     let uuidCounter = 0;
 
     GM_addStyle(`
-        .ffn-row-btn{
+        /* ── 側邊收合抽屜 ── */
+        .ffn-btn-drawer{
             position:absolute;
+            left:0;
             top:50%;
             transform:translateY(-50%);
+            width:5px;
+            height:26px;
+            background:#94a3b8;
+            border-radius:0 4px 4px 0;
+            overflow:hidden;
+            display:flex;
+            align-items:center;
+            gap:2px;
+            padding:0;
+            transition:width .18s ease,background .18s ease,padding .18s ease,border-radius .18s ease;
+            z-index:3;
+            cursor:pointer;
+            box-shadow:1px 0 4px rgba(0,0,0,.15);
+        }
+        .ffn-btn-drawer:hover{
+            width:60px;
+            background:#f1f5f9;
+            border:1px solid #d1d5db;
+            border-radius:0 10px 10px 0;
+            padding:0 4px;
+        }
+
+        /* ── 列按鈕（放在抽屜內，平時隱藏） ── */
+        .ffn-row-btn{
+            position:static;
+            transform:none;
             width:24px;
             height:24px;
             border-radius:50%;
@@ -49,10 +75,15 @@
             justify-content:center;
             line-height:1;
             padding:0;
-            z-index:2;
+            flex-shrink:0;
+            opacity:0;
+            pointer-events:none;
+            transition:opacity .1s .05s;
         }
-        .ffn-rowcopy{ left:${COPY_BUTTON_LEFT_PX}px; }
-        .ffn-rownote{ left:${NOTE_BUTTON_LEFT_PX}px; }
+        .ffn-btn-drawer:hover .ffn-row-btn{
+            opacity:1;
+            pointer-events:auto;
+        }
         .ffn-row-btn:hover{ background:#f3f4f6; }
         .ffn-copy-flash{ background:#d1fae5 !important; }
 
@@ -81,7 +112,8 @@
         .ffn-note-editor textarea{ width:100%; min-height:120px; resize:vertical; box-sizing:border-box; border:1px solid #d1d5db; border-radius:6px; padding:8px; }
         .ffn-actions{ margin-top:8px; display:flex; gap:8px; justify-content:flex-end; }
 
-        .ffn-notes-panel{ width:min(980px,96vw); max-height:90vh; display:flex; flex-direction:column; }
+        /* ── 筆記瀏覽面板：80% 螢幕寬 ── */
+        .ffn-notes-panel{ width:80vw; max-height:90vh; display:flex; flex-direction:column; }
         .ffn-notes-header{ display:flex; align-items:center; justify-content:space-between; padding:10px 12px; border-bottom:1px solid #e5e7eb; }
         .ffn-notes-header h3{ margin:0; font-size:16px; }
         .ffn-notes-controls{ padding:10px 12px; border-bottom:1px solid #f3f4f6; display:grid; gap:8px; grid-template-columns:repeat(6,minmax(120px,1fr)); }
@@ -505,34 +537,39 @@
             if (!firstCell.style.position) firstCell.style.position = 'relative';
             firstCell.style.overflow = 'visible';
 
-            if (!row.querySelector('.ffn-rowcopy')) {
-                const copyBtn = document.createElement('button');
-                copyBtn.type = 'button';
-                copyBtn.className = 'ffn-row-btn ffn-rowcopy';
-                copyBtn.title = '複製資料夾名稱';
-                copyBtn.textContent = '📁';
-                copyBtn.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    handleCopyButtonClick(copyBtn, row);
-                });
-                firstCell.appendChild(copyBtn);
-            }
+            // 已存在就跳過
+            if (row.querySelector('.ffn-btn-drawer')) return;
 
-            if (!row.querySelector('.ffn-rownote')) {
-                const noteBtn = document.createElement('button');
-                noteBtn.type = 'button';
-                noteBtn.className = 'ffn-row-btn ffn-rownote';
-                noteBtn.title = '快速筆記';
-                noteBtn.textContent = '📝';
-                noteBtn.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    const rowData = getRowData(row) || {};
-                    openNoteEditor({ rowData });
-                });
-                firstCell.appendChild(noteBtn);
-            }
+            // 建立收合抽屜
+            const drawer = document.createElement('div');
+            drawer.className = 'ffn-btn-drawer';
+            drawer.title = '展開操作按鈕';
+
+            const copyBtn = document.createElement('button');
+            copyBtn.type = 'button';
+            copyBtn.className = 'ffn-row-btn ffn-rowcopy';
+            copyBtn.title = '複製資料夾名稱';
+            copyBtn.textContent = '📁';
+            copyBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleCopyButtonClick(copyBtn, row);
+            });
+
+            const noteBtn = document.createElement('button');
+            noteBtn.type = 'button';
+            noteBtn.className = 'ffn-row-btn ffn-rownote';
+            noteBtn.title = '快速筆記';
+            noteBtn.textContent = '📝';
+            noteBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const rowData = getRowData(row) || {};
+                openNoteEditor({ rowData });
+            });
+
+            drawer.append(copyBtn, noteBtn);
+            firstCell.appendChild(drawer);
         });
     }
 
