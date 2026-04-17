@@ -239,11 +239,11 @@
 
         const info = document.createElement('div');
         info.className = 'ffn-note-info';
-        info.innerHTML = `📁 <strong>${projectNumber || '(未指定專案)'}</strong> - ${fileNo || '-'} - ${projectName || '-'}`;
+        info.textContent = `📁 ${projectNumber || '(未指定專案)'} - ${fileNo || '-'} - ${projectName || '-'}`;
 
         const textarea = document.createElement('textarea');
         textarea.placeholder = '請輸入筆記內容...';
-        textarea.value = note ? (note.text || '') : '';
+        textarea.value = note ? (note.text || '') : (options.initialText || '');
 
         const actions = document.createElement('div');
         actions.className = 'ffn-actions';
@@ -325,8 +325,8 @@
             }
             if (projectKeyword && !(note.projectNumber || '').toLowerCase().includes(projectKeyword)) return false;
             if (keyword) {
-                const hay = `${note.text || ''} ${(note.projectName || '')} ${(note.projectNumber || '')}`.toLowerCase();
-                if (!hay.includes(keyword)) return false;
+                const searchableText = `${note.text || ''} ${(note.projectName || '')} ${(note.projectNumber || '')}`.toLowerCase();
+                if (!searchableText.includes(keyword)) return false;
             }
             return true;
         });
@@ -450,21 +450,7 @@
         notesPanelEl.querySelector('#ffn-close-panel').addEventListener('click', () => notesOverlayEl.remove());
         notesPanelEl.querySelector('#ffn-today-log').addEventListener('click', () => {
             const dateStr = new Date().toISOString().slice(0, 10);
-            const now = new Date().toISOString();
-            const store = loadStore();
-            const note = {
-                id: createUUID(),
-                projectNumber: '',
-                projectName: '',
-                fileNo: '',
-                text: `${dateStr} 每日紀錄`,
-                createdAt: now,
-                updatedAt: now
-            };
-            store.notes.push(note);
-            saveStore(store);
-            renderNotesList();
-            openNoteEditor({ note });
+            openNoteEditor({ rowData: {}, initialText: `${dateStr} 每日紀錄` });
         });
 
         notesPanelEl.querySelectorAll('input,select').forEach(el => el.addEventListener('input', renderNotesList));
@@ -549,7 +535,7 @@
     (function bindKendo() {
         const $ = window.jQuery;
         if (!$) return setTimeout(bindKendo, 300);
-        const grid = jQuery(GRID_CONTAINER_SELECTOR).data('kendoGrid');
+        const grid = $(GRID_CONTAINER_SELECTOR).data('kendoGrid');
         if (!grid) return setTimeout(bindKendo, 300);
         grid.bind('dataBound', () => { attachButtons(); observeGridRows(); });
     })();
