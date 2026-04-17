@@ -113,6 +113,7 @@
             background:rgba(20,26,34,.36);
             backdrop-filter:blur(12px) saturate(140%);
             -webkit-backdrop-filter:blur(12px) saturate(140%);
+            will-change:backdrop-filter;
             z-index:99999;
             display:flex;
             align-items:center;
@@ -234,6 +235,7 @@
             background:rgba(20,26,34,.36);
             backdrop-filter:blur(12px) saturate(140%);
             -webkit-backdrop-filter:blur(12px) saturate(140%);
+            will-change:backdrop-filter;
             z-index:99997;
             display:flex;
             align-items:center;
@@ -497,22 +499,22 @@
         .ffn-memo-tag.ffn-note-custom-tag{
             background:#e9f2ff;
             border-color:#cfe3ff;
-            color:#0d4a8f;
+            color:#0a3d7a;
         }
         .ffn-memo-tag.ffn-note-custom-tag:nth-child(4n+1){
             background:#e9f7ef;
             border-color:#caead7;
-            color:#1f6a46;
+            color:#175a38;
         }
         .ffn-memo-tag.ffn-note-custom-tag:nth-child(4n+2){
             background:#fff4e8;
             border-color:#f8dec0;
-            color:#5f3408;
+            color:#4d2b06;
         }
         .ffn-memo-tag.ffn-note-custom-tag:nth-child(4n+3){
             background:#f2eeff;
             border-color:#ddd2ff;
-            color:#3a2480;
+            color:#2f1d66;
         }
         .ffn-memo-time{
             font-size:12px;
