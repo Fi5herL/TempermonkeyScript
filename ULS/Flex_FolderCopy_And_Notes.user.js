@@ -41,7 +41,7 @@
             left:0;
             top:50%;
             transform:translateY(-50%);
-            width:6px;
+            width:5px;
             height:28px;
             background:#d5deea;
             border:1px solid rgba(148,163,184,.45);
@@ -497,7 +497,7 @@
         .ffn-memo-tag.ffn-note-custom-tag{
             background:#e9f2ff;
             border-color:#cfe3ff;
-            color:#155fb3;
+            color:#0d4a8f;
         }
         .ffn-memo-tag.ffn-note-custom-tag:nth-child(4n+1){
             background:#e9f7ef;
@@ -507,12 +507,12 @@
         .ffn-memo-tag.ffn-note-custom-tag:nth-child(4n+2){
             background:#fff4e8;
             border-color:#f8dec0;
-            color:#7a460f;
+            color:#5f3408;
         }
         .ffn-memo-tag.ffn-note-custom-tag:nth-child(4n+3){
             background:#f2eeff;
             border-color:#ddd2ff;
-            color:#4931a1;
+            color:#3a2480;
         }
         .ffn-memo-time{
             font-size:12px;
