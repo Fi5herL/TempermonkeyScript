@@ -23,6 +23,7 @@
     const STORAGE_KEY = 'flex_folder_notes_v1';
     const DRAFT_KEY_PREFIX = `${STORAGE_KEY}_draft__`;
     const DRAFT_DEBOUNCE_MS = 500;
+    const MAX_NOTE_TAGS = 20;
     const FLASH_MS = 300;
     const KENDO_RETRY_MS = 300;
     const GRID_OBSERVER_RETRY_MS = 500;
@@ -602,7 +603,7 @@
             .split(/[,\n]/)
             .map(tag => tag.trim().replace(/^#/, ''))
             .filter(Boolean)
-            .slice(0, 20);
+            .slice(0, MAX_NOTE_TAGS);
         const unique = [];
         const existed = new Set();
         tags.forEach(tag => {
@@ -619,7 +620,7 @@
     }
 
     function sanitizeDraftPart(value) {
-        return encodeURIComponent(String(value || '_').trim() || '_');
+        return encodeURIComponent(String(value || '_').trim());
     }
 
     function getDraftKey(note, projectNumber, fileNo) {
@@ -637,6 +638,13 @@
 
     function clearDraftText(draftKey) {
         localStorage.removeItem(draftKey);
+    }
+
+    function getInitialEditorText(note, options, draftKey) {
+        const savedDraft = loadDraftText(draftKey);
+        if (savedDraft !== null) return savedDraft;
+        if (note) return note.text || '';
+        return options.initialText || '';
     }
 
     function debounce(fn, delay) {
@@ -793,8 +801,7 @@
 
         const textarea = document.createElement('textarea');
         textarea.placeholder = '請輸入筆記內容...';
-        const savedDraft = loadDraftText(draftKey);
-        textarea.value = savedDraft !== null ? savedDraft : (note ? (note.text || '') : (options.initialText || ''));
+        textarea.value = getInitialEditorText(note, options, draftKey);
 
         const tagsInput = document.createElement('input');
         tagsInput.type = 'text';
@@ -983,6 +990,7 @@
 
             const content = document.createElement('div');
             content.className = 'ffn-memo-content';
+            // renderMarkdown 內部會先 escape 使用者輸入，再套用受控 markdown 標記
             content.innerHTML = renderMarkdown(note.text || '');
 
             const footer = document.createElement('div');
