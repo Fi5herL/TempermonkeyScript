@@ -87,48 +87,319 @@
         .ffn-row-btn:hover{ background:#f3f4f6; }
         .ffn-copy-flash{ background:#d1fae5 !important; }
 
-        .ffn-note-editor-backdrop,
+        /* ── 筆記編輯對話框 ── */
+        .ffn-note-editor-backdrop{
+            position:fixed;
+            inset:0;
+            background:rgba(0,0,0,.45);
+            z-index:99999;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+        }
+        .ffn-note-editor{
+            background:#fff;
+            border-radius:12px;
+            box-shadow:0 24px 64px rgba(0,0,0,.25);
+            width:560px;
+            max-width:94vw;
+            padding:20px 24px;
+            color:#111;
+            font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;
+        }
+        .ffn-note-editor h3{
+            margin:0 0 12px;
+            font-size:16px;
+            font-weight:600;
+        }
+        .ffn-note-info{
+            font-size:12px;
+            color:#6b7280;
+            background:#f9fafb;
+            border:1px solid #e5e7eb;
+            border-radius:6px;
+            padding:8px 10px;
+            margin-bottom:12px;
+        }
+        .ffn-note-editor textarea{
+            width:100%;
+            min-height:140px;
+            resize:vertical;
+            box-sizing:border-box;
+            border:1px solid #e5e7eb;
+            border-radius:8px;
+            padding:10px 12px;
+            font-size:14px;
+            line-height:1.6;
+            color:#111;
+            outline:none;
+            transition:border-color .15s;
+            font-family:inherit;
+        }
+        .ffn-note-editor textarea:focus{ border-color:#6366f1; }
+        .ffn-actions{
+            margin-top:12px;
+            display:flex;
+            gap:8px;
+            justify-content:flex-end;
+        }
+        .ffn-note-editor button{
+            padding:8px 18px;
+            border-radius:8px;
+            border:1px solid #e5e7eb;
+            background:#fff;
+            cursor:pointer;
+            font-size:13px;
+            font-weight:500;
+            color:#374151;
+            transition:background .15s,border-color .15s;
+        }
+        .ffn-note-editor button:hover{ background:#f9fafb; }
+        .ffn-note-editor button.ffn-primary{
+            background:#4f46e5;
+            color:#fff;
+            border-color:#4f46e5;
+        }
+        .ffn-note-editor button.ffn-primary:hover{
+            background:#4338ca;
+            border-color:#4338ca;
+        }
+
+        /* ── Memos 風格筆記面板 ── */
         .ffn-notes-overlay{
             position:fixed;
             inset:0;
-            background:rgba(0,0,0,.35);
+            background:rgba(0,0,0,.45);
             z-index:99997;
             display:flex;
             align-items:center;
             justify-content:center;
         }
-        .ffn-note-editor,
         .ffn-notes-panel{
+            width:90vw;
+            max-width:1100px;
+            height:85vh;
+            display:flex;
+            border-radius:12px;
+            overflow:hidden;
             background:#fff;
-            border:1px solid #d1d5db;
-            border-radius:8px;
-            box-shadow:0 12px 24px rgba(0,0,0,.2);
-            color:#111827;
-            font-family:Segoe UI,Arial,sans-serif;
+            box-shadow:0 24px 64px rgba(0,0,0,.25);
+            color:#1a1a1a;
+            font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;
         }
-        .ffn-note-editor{ width:520px; max-width:92vw; padding:12px; z-index:99998; }
-        .ffn-note-editor h3{ margin:0 0 8px; font-size:16px; }
-        .ffn-note-info{ font-size:12px; color:#374151; background:#f9fafb; border:1px solid #e5e7eb; border-radius:4px; padding:6px; margin-bottom:8px; }
-        .ffn-note-editor textarea{ width:100%; min-height:120px; resize:vertical; box-sizing:border-box; border:1px solid #d1d5db; border-radius:6px; padding:8px; }
-        .ffn-actions{ margin-top:8px; display:flex; gap:8px; justify-content:flex-end; }
 
-        /* ── 筆記瀏覽面板：80% 螢幕寬 ── */
-        .ffn-notes-panel{ width:80vw; max-height:90vh; display:flex; flex-direction:column; }
-        .ffn-notes-header{ display:flex; align-items:center; justify-content:space-between; padding:10px 12px; border-bottom:1px solid #e5e7eb; }
-        .ffn-notes-header h3{ margin:0; font-size:16px; }
-        .ffn-notes-controls{ padding:10px 12px; border-bottom:1px solid #f3f4f6; display:grid; gap:8px; grid-template-columns:repeat(6,minmax(120px,1fr)); }
-        .ffn-notes-controls input,
-        .ffn-notes-controls select,
-        .ffn-note-editor button,
-        .ffn-notes-header button,
-        .ffn-note-card button{ border:1px solid #d1d5db; border-radius:6px; background:#fff; padding:6px 8px; font-size:12px; }
-        .ffn-notes-list{ overflow:auto; padding:12px; display:flex; flex-direction:column; gap:8px; }
-        .ffn-note-card{ border:1px solid #e5e7eb; border-radius:8px; padding:8px; background:#fff; }
-        .ffn-note-title{ font-size:13px; margin-bottom:6px; white-space:pre-wrap; }
-        .ffn-note-meta{ font-size:12px; color:#374151; margin-bottom:6px; }
-        .ffn-note-time{ font-size:12px; color:#6b7280; }
-        .ffn-note-card .ffn-actions{ margin-top:6px; justify-content:flex-start; }
-        .ffn-empty{ text-align:center; color:#6b7280; padding:16px; }
+        /* Sidebar */
+        .ffn-sidebar{
+            width:252px;
+            flex-shrink:0;
+            background:#f7f7f8;
+            border-right:1px solid #e8e8e8;
+            display:flex;
+            flex-direction:column;
+            padding:20px 16px;
+            gap:14px;
+            overflow-y:auto;
+            box-sizing:border-box;
+        }
+        .ffn-sidebar-title{
+            font-size:17px;
+            font-weight:600;
+            color:#111;
+            margin:0;
+            display:flex;
+            align-items:center;
+            gap:7px;
+        }
+        .ffn-sidebar-new-btn{
+            width:100%;
+            padding:9px 14px;
+            border-radius:8px;
+            background:#4f46e5;
+            color:#fff;
+            border:none;
+            font-size:13px;
+            font-weight:500;
+            cursor:pointer;
+            display:flex;
+            align-items:center;
+            gap:6px;
+            justify-content:center;
+            transition:background .15s;
+        }
+        .ffn-sidebar-new-btn:hover{ background:#4338ca; }
+        .ffn-sidebar-section{
+            display:flex;
+            flex-direction:column;
+            gap:6px;
+        }
+        .ffn-sidebar-label{
+            font-size:11px;
+            font-weight:600;
+            color:#9ca3af;
+            text-transform:uppercase;
+            letter-spacing:.05em;
+        }
+        .ffn-sidebar input,
+        .ffn-sidebar select{
+            width:100%;
+            padding:7px 10px;
+            border:1px solid #e0e0e0;
+            border-radius:6px;
+            background:#fff;
+            font-size:13px;
+            color:#111;
+            box-sizing:border-box;
+            outline:none;
+            transition:border-color .15s;
+        }
+        .ffn-sidebar input:focus,
+        .ffn-sidebar select:focus{ border-color:#6366f1; }
+
+        /* Main feed */
+        .ffn-main{
+            flex:1;
+            display:flex;
+            flex-direction:column;
+            overflow:hidden;
+            background:#fff;
+        }
+        .ffn-main-header{
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            padding:14px 20px;
+            border-bottom:1px solid #f0f0f0;
+            flex-shrink:0;
+        }
+        .ffn-main-header-title{
+            font-size:14px;
+            font-weight:500;
+            color:#6b7280;
+        }
+        .ffn-close-btn{
+            width:30px;
+            height:30px;
+            border-radius:50%;
+            border:none;
+            background:#f3f4f6;
+            cursor:pointer;
+            font-size:15px;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            color:#6b7280;
+            transition:background .15s;
+            line-height:1;
+        }
+        .ffn-close-btn:hover{ background:#e5e7eb; color:#111; }
+        .ffn-notes-list{
+            flex:1;
+            overflow-y:auto;
+            padding:12px 20px 20px;
+        }
+
+        /* Date group */
+        .ffn-date-group{
+            font-size:11px;
+            font-weight:600;
+            color:#9ca3af;
+            text-transform:uppercase;
+            letter-spacing:.06em;
+            margin:18px 0 8px;
+            padding-left:2px;
+        }
+        .ffn-date-group:first-child{ margin-top:4px; }
+
+        /* Memo card */
+        .ffn-memo-card{
+            border:1px solid #f0f0f0;
+            border-radius:10px;
+            padding:14px 16px;
+            margin-bottom:8px;
+            background:#fff;
+            transition:box-shadow .15s,border-color .15s;
+        }
+        .ffn-memo-card:hover{
+            box-shadow:0 2px 14px rgba(0,0,0,.07);
+            border-color:#e5e7eb;
+        }
+        .ffn-memo-content{
+            font-size:14px;
+            line-height:1.65;
+            color:#1a1a1a;
+            white-space:pre-wrap;
+            word-break:break-word;
+            margin-bottom:10px;
+        }
+        .ffn-memo-footer{
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            gap:8px;
+        }
+        .ffn-memo-meta{
+            display:flex;
+            align-items:center;
+            gap:6px;
+            flex-wrap:wrap;
+            flex:1;
+            min-width:0;
+        }
+        .ffn-memo-tag{
+            display:inline-flex;
+            align-items:center;
+            padding:2px 8px;
+            border-radius:4px;
+            background:#f3f4f6;
+            font-size:12px;
+            color:#374151;
+            white-space:nowrap;
+            max-width:180px;
+            overflow:hidden;
+            text-overflow:ellipsis;
+        }
+        .ffn-memo-time{
+            font-size:12px;
+            color:#9ca3af;
+            white-space:nowrap;
+        }
+        .ffn-memo-actions{
+            display:flex;
+            gap:2px;
+            opacity:0;
+            transition:opacity .15s;
+            flex-shrink:0;
+        }
+        .ffn-memo-card:hover .ffn-memo-actions{ opacity:1; }
+        .ffn-memo-action-btn{
+            padding:4px 9px;
+            border-radius:6px;
+            border:none;
+            background:transparent;
+            cursor:pointer;
+            font-size:12px;
+            color:#6b7280;
+            transition:background .1s,color .1s;
+        }
+        .ffn-memo-action-btn:hover{
+            background:#f3f4f6;
+            color:#111;
+        }
+        .ffn-memo-action-btn.ffn-delete:hover{
+            background:#fee2e2;
+            color:#ef4444;
+        }
+        .ffn-empty-state{
+            display:flex;
+            flex-direction:column;
+            align-items:center;
+            justify-content:center;
+            height:220px;
+            color:#9ca3af;
+            font-size:14px;
+            gap:10px;
+        }
+        .ffn-empty-state-icon{ font-size:42px; }
     `);
 
     function analyzeGridHeaders(columnNames = FOLDER_COLUMNS) {
@@ -301,6 +572,7 @@
         cancelBtn.textContent = '取消';
 
         const saveBtn = document.createElement('button');
+        saveBtn.className = 'ffn-primary';
         saveBtn.textContent = '儲存';
 
         cancelBtn.addEventListener('click', () => closeNoteEditor(box));
@@ -402,45 +674,94 @@
         return filtered;
     }
 
+    function formatDateGroupLabel(isoString) {
+        const d = new Date(isoString);
+        if (Number.isNaN(d.getTime())) return '未知日期';
+        const today = new Date();
+        const yesterday = new Date(today);
+        yesterday.setDate(today.getDate() - 1);
+        const toLabel = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+        const dLabel = toLabel(d);
+        if (dLabel === toLabel(today)) return '今天';
+        if (dLabel === toLabel(yesterday)) return '昨天';
+        return dLabel;
+    }
+
     function renderNotesList() {
         if (!notesPanelEl) return;
         const list = notesPanelEl.querySelector('.ffn-notes-list');
         list.innerHTML = '';
 
         const notes = getFilteredSortedNotes();
+
+        // Update header count
+        const headerTitle = notesPanelEl.querySelector('.ffn-main-header-title');
+        if (headerTitle) headerTitle.textContent = `所有筆記（${notes.length}）`;
+
         if (!notes.length) {
             const empty = document.createElement('div');
-            empty.className = 'ffn-empty';
-            empty.textContent = '目前沒有符合條件的筆記';
+            empty.className = 'ffn-empty-state';
+            empty.innerHTML = '<div class="ffn-empty-state-icon">📭</div><div>目前沒有符合條件的筆記</div>';
             list.appendChild(empty);
             return;
         }
 
+        const sortBy = notesPanelEl.querySelector('#ffn-sort-by').value;
+        const dateField = sortBy === 'updatedAt' ? 'updatedAt' : 'createdAt';
+
+        let lastGroupLabel = null;
         notes.forEach(note => {
+            const groupLabel = formatDateGroupLabel(note[dateField] || note.createdAt);
+            if (groupLabel !== lastGroupLabel) {
+                lastGroupLabel = groupLabel;
+                const groupEl = document.createElement('div');
+                groupEl.className = 'ffn-date-group';
+                groupEl.textContent = groupLabel;
+                list.appendChild(groupEl);
+            }
+
             const card = document.createElement('div');
-            card.className = 'ffn-note-card';
+            card.className = 'ffn-memo-card';
 
-            const preview = document.createElement('div');
-            preview.className = 'ffn-note-title';
-            const shortText = (note.text || '').length > 120 ? `${note.text.slice(0, 120)}...` : (note.text || '');
-            preview.textContent = `📝 ${shortText}`;
+            const content = document.createElement('div');
+            content.className = 'ffn-memo-content';
+            content.textContent = note.text || '';
 
-            const project = document.createElement('div');
-            project.className = 'ffn-note-meta';
-            project.textContent = `📁 ${note.projectNumber || '-'} - ${note.fileNo || '-'} - ${note.projectName || '-'}`;
+            const footer = document.createElement('div');
+            footer.className = 'ffn-memo-footer';
 
-            const time = document.createElement('div');
-            time.className = 'ffn-note-time';
-            time.textContent = `🕐 建立: ${formatDateTime(note.createdAt)} | 更新: ${formatDateTime(note.updatedAt)}`;
+            const meta = document.createElement('div');
+            meta.className = 'ffn-memo-meta';
+
+            if (note.projectNumber || note.fileNo) {
+                const tag = document.createElement('span');
+                tag.className = 'ffn-memo-tag';
+                const fileNoPart = note.fileNo ? ` · ${note.fileNo}` : '';
+                tag.textContent = `📁 ${note.projectNumber || '-'}${fileNoPart}`;
+                meta.appendChild(tag);
+            }
+            if (note.projectName) {
+                const nameTag = document.createElement('span');
+                nameTag.className = 'ffn-memo-tag';
+                nameTag.textContent = note.projectName;
+                meta.appendChild(nameTag);
+            }
+
+            const time = document.createElement('span');
+            time.className = 'ffn-memo-time';
+            time.title = `建立: ${formatDateTime(note.createdAt)}`;
+            time.textContent = formatDateTime(note[dateField] || note.createdAt);
 
             const actions = document.createElement('div');
-            actions.className = 'ffn-actions';
+            actions.className = 'ffn-memo-actions';
 
             const editBtn = document.createElement('button');
+            editBtn.className = 'ffn-memo-action-btn';
             editBtn.textContent = '✏️ 編輯';
             editBtn.addEventListener('click', () => openNoteEditor({ note }));
 
             const delBtn = document.createElement('button');
+            delBtn.className = 'ffn-memo-action-btn ffn-delete';
             delBtn.textContent = '🗑️ 刪除';
             delBtn.addEventListener('click', () => {
                 if (!confirm('確定要刪除此筆記？')) return;
@@ -451,7 +772,8 @@
             });
 
             actions.append(editBtn, delBtn);
-            card.append(preview, project, time, actions);
+            footer.append(meta, time, actions);
+            card.append(content, footer);
             list.appendChild(card);
         });
     }
@@ -466,29 +788,39 @@
         notesPanelEl.className = 'ffn-notes-panel';
 
         notesPanelEl.innerHTML = `
-            <div class="ffn-notes-header">
-                <h3>📝 Quick Notes History</h3>
-                <div class="ffn-actions" style="margin:0;">
-                    <button type="button" id="ffn-today-log">📅 今日紀錄</button>
-                    <button type="button" id="ffn-close-panel">關閉</button>
+            <div class="ffn-sidebar">
+                <h2 class="ffn-sidebar-title">📝 Quick Notes</h2>
+                <button type="button" id="ffn-today-log" class="ffn-sidebar-new-btn">＋ 新增今日紀錄</button>
+                <div class="ffn-sidebar-section">
+                    <div class="ffn-sidebar-label">排序方式</div>
+                    <select id="ffn-sort-by">
+                        <option value="updatedAt">最近更新</option>
+                        <option value="createdAt">建立時間</option>
+                        <option value="projectName">專案名稱</option>
+                    </select>
+                    <select id="ffn-order">
+                        <option value="desc">新 → 舊</option>
+                        <option value="asc">舊 → 新</option>
+                    </select>
+                </div>
+                <div class="ffn-sidebar-section">
+                    <div class="ffn-sidebar-label">篩選</div>
+                    <input id="ffn-project-filter" type="text" placeholder="🔍 專案編號">
+                    <input id="ffn-keyword" type="text" placeholder="🔍 關鍵字搜尋">
+                </div>
+                <div class="ffn-sidebar-section">
+                    <div class="ffn-sidebar-label">日期範圍</div>
+                    <input id="ffn-date-from" type="date" title="開始日期">
+                    <input id="ffn-date-to" type="date" title="結束日期">
                 </div>
             </div>
-            <div class="ffn-notes-controls">
-                <select id="ffn-sort-by">
-                    <option value="updatedAt">最近更新</option>
-                    <option value="createdAt">建立時間</option>
-                    <option value="projectName">專案名稱</option>
-                </select>
-                <select id="ffn-order">
-                    <option value="desc">新→舊</option>
-                    <option value="asc">舊→新</option>
-                </select>
-                <input id="ffn-project-filter" type="text" placeholder="專案編號篩選">
-                <input id="ffn-date-from" type="date" title="開始日期">
-                <input id="ffn-date-to" type="date" title="結束日期">
-                <input id="ffn-keyword" type="text" placeholder="關鍵字搜尋">
+            <div class="ffn-main">
+                <div class="ffn-main-header">
+                    <span class="ffn-main-header-title">所有筆記</span>
+                    <button type="button" id="ffn-close-panel" class="ffn-close-btn" title="關閉">✕</button>
+                </div>
+                <div class="ffn-notes-list"></div>
             </div>
-            <div class="ffn-notes-list"></div>
         `;
 
         notesOverlayEl.appendChild(notesPanelEl);
