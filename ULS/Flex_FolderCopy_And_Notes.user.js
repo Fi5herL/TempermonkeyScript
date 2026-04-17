@@ -24,6 +24,8 @@
     const FLASH_MS = 300;
     const KENDO_RETRY_MS = 300;
     const GRID_OBSERVER_RETRY_MS = 500;
+    const COPY_BUTTON_LEFT_PX = 4;
+    const NOTE_BUTTON_LEFT_PX = 32;
 
     let notesOverlayEl = null;
     let notesPanelEl = null;
@@ -49,8 +51,8 @@
             padding:0;
             z-index:2;
         }
-        .ffn-rowcopy{ left:4px; }
-        .ffn-rownote{ left:32px; }
+        .ffn-rowcopy{ left:${COPY_BUTTON_LEFT_PX}px; }
+        .ffn-rownote{ left:${NOTE_BUTTON_LEFT_PX}px; }
         .ffn-row-btn:hover{ background:#f3f4f6; }
         .ffn-copy-flash{ background:#d1fae5 !important; }
 
