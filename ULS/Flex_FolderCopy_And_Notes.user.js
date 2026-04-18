@@ -34,7 +34,6 @@
     let notesPanelEl = null;
     let gridObserver = null;
     let uuidCounter = 0;
-    const inlineBoundContentEls = new WeakSet();
     const inlineCardState = new WeakMap();
 
     GM_addStyle(`
@@ -1307,12 +1306,10 @@
     function bindInlineEditTrigger(card, note) {
         const contentEl = card.querySelector('.ffn-memo-content');
         if (!contentEl) return;
-        if (inlineBoundContentEls.has(contentEl)) return;
-        inlineBoundContentEls.add(contentEl);
-        contentEl.addEventListener('dblclick', (e) => {
+        contentEl.ondblclick = (e) => {
             e.preventDefault();
             enterInlineEdit(card, note);
-        });
+        };
     }
 
     function enterInlineEdit(card, note) {
@@ -1423,7 +1420,7 @@
         requestAnimationFrame(() => {
             autoGrowTextarea(textarea);
             textarea.focus();
-            if (typeof textarea.setSelectionRange === 'function') textarea.setSelectionRange(0, 0);
+            textarea.setSelectionRange(0, 0);
         });
     }
 
@@ -1452,8 +1449,11 @@
         const store = loadStore();
         const idx = store.notes.findIndex(n => n.id === note.id);
         if (idx < 0) return;
-        store.notes[idx].text = trimmed;
-        store.notes[idx].updatedAt = new Date().toISOString();
+        store.notes[idx] = {
+            ...store.notes[idx],
+            text: trimmed,
+            updatedAt: new Date().toISOString()
+        };
         saveStore(store);
         const reboundNote = {
             ...note,
