@@ -33,6 +33,8 @@
     let notesPanelEl = null;
     let gridObserver = null;
     let uuidCounter = 0;
+    const inlineBoundContentEls = new WeakSet();
+    const inlineCardState = new WeakMap();
 
     GM_addStyle(`
         /* ── 側邊收合抽屜 ── */
@@ -220,6 +222,9 @@
             overflow:auto;
             padding:10px 12px;
             font-size:13px;
+        }
+        .ffn-preview-placeholder{
+            opacity:.4;
         }
         .ffn-note-tags-input{
             margin-top:12px;
@@ -1130,7 +1135,7 @@
         const updatePreview = () => {
             const html = renderMarkdown(textarea.value || '');
             previewContent.innerHTML = html;
-            miniPreviewContent.innerHTML = html || '<p style="opacity:.4">預覽區域</p>';
+            miniPreviewContent.innerHTML = html || '<p class="ffn-preview-placeholder">預覽區域</p>';
         };
         updatePreview();
 
@@ -1301,8 +1306,8 @@
     function bindInlineEditTrigger(card, note) {
         const contentEl = card.querySelector('.ffn-memo-content');
         if (!contentEl) return;
-        if (contentEl._ffnInlineBound) return;
-        contentEl._ffnInlineBound = true;
+        if (inlineBoundContentEls.has(contentEl)) return;
+        inlineBoundContentEls.add(contentEl);
         contentEl.addEventListener('dblclick', (e) => {
             e.preventDefault();
             enterInlineEdit(card, note);
@@ -1319,8 +1324,7 @@
         if (!contentEl) return;
 
         card.classList.add('ffn-editing');
-        card._ffnOriginalHTML = contentEl.innerHTML;
-        card._ffnNote = note;
+        inlineCardState.set(card, { originalHTML: contentEl.innerHTML, note });
         contentEl.innerHTML = '';
 
         const editorWrap = document.createElement('div');
@@ -1333,10 +1337,10 @@
 
         const preview = document.createElement('div');
         preview.className = 'ffn-inline-preview ffn-memo-content';
-        preview.innerHTML = renderMarkdown(note.text || '') || '<p style="opacity:.4">預覽區域</p>';
+        preview.innerHTML = renderMarkdown(note.text || '') || '<p class="ffn-preview-placeholder">預覽區域</p>';
 
         const updatePreview = () => {
-            preview.innerHTML = renderMarkdown(textarea.value || '') || '<p style="opacity:.4">預覽區域</p>';
+            preview.innerHTML = renderMarkdown(textarea.value || '') || '<p class="ffn-preview-placeholder">預覽區域</p>';
         };
 
         textarea.addEventListener('input', () => {
@@ -1425,11 +1429,11 @@
         if (!card) return;
         const contentEl = card.querySelector('.ffn-memo-content');
         if (!contentEl) return;
+        const state = inlineCardState.get(card) || {};
         card.classList.remove('ffn-editing');
-        contentEl.innerHTML = card._ffnOriginalHTML || '';
-        bindInlineEditTrigger(card, card._ffnNote);
-        delete card._ffnOriginalHTML;
-        delete card._ffnNote;
+        contentEl.innerHTML = state.originalHTML || '';
+        bindInlineEditTrigger(card, state.note);
+        inlineCardState.delete(card);
     }
 
     function commitInlineEdit(card, text) {
@@ -1440,25 +1444,24 @@
             return;
         }
 
-        const note = card._ffnNote;
+        const state = inlineCardState.get(card) || {};
+        const note = state.note;
         if (!note) return;
         const store = loadStore();
         const idx = store.notes.findIndex(n => n.id === note.id);
-        if (idx >= 0) {
-            store.notes[idx].text = trimmed;
-            store.notes[idx].updatedAt = new Date().toISOString();
-            saveStore(store);
-            note.text = trimmed;
-            note.updatedAt = store.notes[idx].updatedAt;
-        }
+        if (idx < 0) return;
+        store.notes[idx].text = trimmed;
+        store.notes[idx].updatedAt = new Date().toISOString();
+        saveStore(store);
+        note.text = trimmed;
+        note.updatedAt = store.notes[idx].updatedAt;
 
         const contentEl = card.querySelector('.ffn-memo-content');
         if (!contentEl) return;
         card.classList.remove('ffn-editing');
         contentEl.innerHTML = renderMarkdown(trimmed);
         bindInlineEditTrigger(card, note);
-        delete card._ffnOriginalHTML;
-        delete card._ffnNote;
+        inlineCardState.delete(card);
     }
 
     function renderNotesList() {
