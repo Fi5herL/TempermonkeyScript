@@ -33,6 +33,8 @@
     let notesPanelEl = null;
     let gridObserver = null;
     let uuidCounter = 0;
+    let editingInlineNoteId = null;
+    let editingInlineText = '';
 
     GM_addStyle(`
         /* ── 側邊收合抽屜 ── */
@@ -110,10 +112,7 @@
         .ffn-note-editor-backdrop{
             position:fixed;
             inset:0;
-            background:rgba(20,26,34,.36);
-            backdrop-filter:blur(12px) saturate(140%);
-            -webkit-backdrop-filter:blur(12px) saturate(140%);
-            will-change:backdrop-filter;
+            background:rgba(0,0,0,.2);
             z-index:99999;
             display:flex;
             align-items:center;
@@ -121,10 +120,9 @@
             animation:ffn-fade-in .22s ease-out;
         }
         .ffn-note-editor{
-            background:rgba(255,255,255,.88);
-            border:1px solid rgba(255,255,255,.7);
-            border-radius:16px;
-            box-shadow:0 24px 56px rgba(15,23,42,.24);
+            background:#fff;
+            border:1px solid #e5e7eb;
+            border-radius:8px;
             width:560px;
             max-width:94vw;
             padding:24px 26px;
@@ -141,53 +139,84 @@
         }
         .ffn-note-info{
             font-size:12px;
-            color:#556170;
-            background:rgba(246,248,251,.9);
-            border:1px solid rgba(210,218,229,.86);
-            border-radius:10px;
+            color:#4b5563;
+            background:#f9fafb;
+            border:1px solid #e5e7eb;
+            border-radius:6px;
             padding:10px 12px;
             margin-bottom:14px;
             line-height:1.5;
         }
+        .ffn-note-editor-tabs{
+            display:flex;
+            gap:8px;
+            margin-bottom:10px;
+        }
+        .ffn-note-editor .ffn-note-editor-tab{
+            border:none;
+            background:transparent;
+            border-radius:6px;
+            padding:6px 10px;
+            font-size:13px;
+            color:#4b5563;
+            cursor:pointer;
+            transition:background .15s,color .15s;
+        }
+        .ffn-note-editor .ffn-note-editor-tab:hover{ background:#f3f4f6; }
+        .ffn-note-editor .ffn-note-editor-tab.active{
+            background:#eef2ff;
+            color:#3730a3;
+        }
+        .ffn-note-editor-panel{ display:none; }
+        .ffn-note-editor-panel.active{ display:block; }
         .ffn-note-editor textarea{
             width:100%;
             min-height:152px;
             resize:vertical;
             box-sizing:border-box;
-            border:1px solid #d4dce6;
-            border-radius:12px;
-            background:rgba(255,255,255,.94);
+            border:1px solid #d1d5db;
+            border-radius:6px;
+            background:transparent;
             padding:12px 14px;
             font-size:14px;
             line-height:1.7;
             color:#1f2937;
             outline:none;
-            transition:border-color .15s,box-shadow .15s,background .15s;
+            transition:border-color .15s,outline-color .15s;
             font-family:inherit;
         }
         .ffn-note-editor textarea:focus{
-            border-color:#0071e3;
-            box-shadow:0 0 0 4px rgba(0,113,227,.16);
+            border-color:#4f46e5;
+            outline:2px solid #4f46e5;
+            outline-offset:0;
+        }
+        .ffn-note-preview{
+            min-height:152px;
+            box-sizing:border-box;
+            border:1px solid #d1d5db;
+            border-radius:6px;
+            padding:12px 14px;
             background:#fff;
+            overflow:auto;
         }
         .ffn-note-tags-input{
             margin-top:12px;
             width:100%;
             box-sizing:border-box;
-            border:1px solid #d4dce6;
-            border-radius:12px;
-            background:rgba(255,255,255,.94);
+            border:1px solid #d1d5db;
+            border-radius:6px;
+            background:transparent;
             padding:10px 12px;
             font-size:13px;
             color:#1f2937;
             font-family:inherit;
             outline:none;
-            transition:border-color .15s,box-shadow .15s,background .15s;
+            transition:border-color .15s,outline-color .15s;
         }
         .ffn-note-tags-input:focus{
-            border-color:#0071e3;
-            box-shadow:0 0 0 4px rgba(0,113,227,.16);
-            background:#fff;
+            border-color:#4f46e5;
+            outline:2px solid #4f46e5;
+            outline-offset:0;
         }
         .ffn-actions{
             margin-top:16px;
@@ -197,45 +226,38 @@
         }
         .ffn-note-editor button{
             padding:9px 18px;
-            border-radius:10px;
-            border:1px solid #d3dbe5;
-            background:#fff;
+            border-radius:6px;
+            border:1px solid transparent;
+            background:transparent;
             cursor:pointer;
             font-size:13px;
             font-weight:600;
             color:#374151;
-            transition:background .15s,border-color .15s,color .15s,box-shadow .15s,transform .15s;
+            transition:background .15s,border-color .15s,color .15s;
         }
         .ffn-note-editor button:hover{
-            background:#f5f8fc;
-            border-color:#c2cddd;
-            transform:translateY(-1px);
+            background:#f3f4f6;
         }
         .ffn-note-editor button:focus-visible{
             outline:none;
-            border-color:#0071e3;
-            box-shadow:0 0 0 4px rgba(0,113,227,.16);
+            border-color:#4f46e5;
+            outline:2px solid #4f46e5;
         }
         .ffn-note-editor button.ffn-primary{
-            background:#0071e3;
+            background:#4f46e5;
             color:#fff;
-            border-color:#0071e3;
-            box-shadow:0 8px 18px rgba(0,113,227,.28);
+            border-color:#4f46e5;
         }
         .ffn-note-editor button.ffn-primary:hover{
-            background:#0066cc;
-            border-color:#0066cc;
-            box-shadow:0 10px 20px rgba(0,102,204,.3);
+            background:#4338ca;
+            border-color:#4338ca;
         }
 
         /* ── Memos 風格筆記面板 ── */
         .ffn-notes-overlay{
             position:fixed;
             inset:0;
-            background:rgba(20,26,34,.36);
-            backdrop-filter:blur(12px) saturate(140%);
-            -webkit-backdrop-filter:blur(12px) saturate(140%);
-            will-change:backdrop-filter;
+            background:rgba(0,0,0,.2);
             z-index:99997;
             display:flex;
             align-items:center;
@@ -247,11 +269,10 @@
             max-width:1120px;
             height:86vh;
             display:flex;
-            border-radius:16px;
+            border-radius:8px;
             overflow:hidden;
-            background:rgba(255,255,255,.9);
-            border:1px solid rgba(255,255,255,.7);
-            box-shadow:0 30px 72px rgba(15,23,42,.24);
+            background:#fff;
+            border:1px solid #e5e7eb;
             color:#1d1d1f;
             font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;
             animation:ffn-slide-up .24s cubic-bezier(.2,.8,.2,1);
@@ -261,8 +282,8 @@
         .ffn-sidebar{
             width:252px;
             flex-shrink:0;
-            background:linear-gradient(180deg,rgba(245,248,252,.97) 0%,rgba(240,244,249,.95) 100%);
-            border-right:1px solid rgba(216,224,235,.95);
+            background:#f9fafb;
+            border-right:1px solid #e5e7eb;
             display:flex;
             flex-direction:column;
             padding:24px 18px;
@@ -283,8 +304,8 @@
         .ffn-sidebar-new-btn{
             width:100%;
             padding:10px 14px;
-            border-radius:10px;
-            background:#0071e3;
+            border-radius:6px;
+            background:#4f46e5;
             color:#fff;
             border:none;
             font-size:13px;
@@ -294,17 +315,14 @@
             align-items:center;
             gap:6px;
             justify-content:center;
-            box-shadow:0 10px 20px rgba(0,113,227,.2);
-            transition:background .15s,transform .15s,box-shadow .15s;
+            transition:background .15s;
         }
         .ffn-sidebar-new-btn:hover{
-            background:#0066cc;
-            transform:translateY(-1px);
-            box-shadow:0 12px 22px rgba(0,102,204,.24);
+            background:#4338ca;
         }
         .ffn-sidebar-new-btn:focus-visible{
             outline:none;
-            box-shadow:0 0 0 4px rgba(0,113,227,.22);
+            outline:2px solid #4f46e5;
         }
         .ffn-sidebar-section{
             display:flex;
@@ -322,20 +340,20 @@
         .ffn-sidebar select{
             width:100%;
             padding:9px 11px;
-            border:1px solid #d1dbe6;
-            border-radius:10px;
-            background:rgba(255,255,255,.92);
+            border:1px solid #d1d5db;
+            border-radius:6px;
+            background:transparent;
             font-size:13px;
             color:#1f2937;
             box-sizing:border-box;
             outline:none;
-            transition:border-color .15s,box-shadow .15s,background .15s;
+            transition:border-color .15s,outline-color .15s;
         }
         .ffn-sidebar input:focus,
         .ffn-sidebar select:focus{
-            border-color:#0071e3;
-            box-shadow:0 0 0 4px rgba(0,113,227,.14);
-            background:#fff;
+            border-color:#4f46e5;
+            outline:2px solid #4f46e5;
+            outline-offset:0;
         }
 
         /* Main feed */
@@ -344,16 +362,16 @@
             display:flex;
             flex-direction:column;
             overflow:hidden;
-            background:rgba(252,253,255,.9);
+            background:#fff;
         }
         .ffn-main-header{
             display:flex;
             align-items:center;
             justify-content:space-between;
             padding:16px 24px;
-            border-bottom:1px solid rgba(221,228,238,.85);
+            border-bottom:1px solid #e5e7eb;
             flex-shrink:0;
-            background:rgba(255,255,255,.75);
+            background:#fff;
         }
         .ffn-main-header-title{
             font-size:14px;
@@ -364,32 +382,31 @@
         .ffn-close-btn{
             width:32px;
             height:32px;
-            border-radius:50%;
+            border-radius:6px;
             border:none;
-            background:#eef2f7;
+            background:transparent;
             cursor:pointer;
             font-size:15px;
             display:flex;
             align-items:center;
             justify-content:center;
             color:#6b7787;
-            transition:background .15s,color .15s,transform .15s,box-shadow .15s;
+            transition:background .15s,color .15s;
             line-height:1;
         }
         .ffn-close-btn:hover{
-            background:#e2e8f0;
+            background:#f3f4f6;
             color:#1d1d1f;
-            transform:translateY(-1px);
         }
         .ffn-close-btn:focus-visible{
             outline:none;
-            box-shadow:0 0 0 4px rgba(0,113,227,.16);
+            outline:2px solid #4f46e5;
         }
         .ffn-notes-list{
             flex:1;
             overflow-y:auto;
             padding:16px 24px 24px;
-            background:linear-gradient(180deg,rgba(255,255,255,.7) 0%,rgba(249,251,255,.62) 100%);
+            background:#fff;
         }
 
         /* Date group */
@@ -406,19 +423,20 @@
 
         /* Memo card */
         .ffn-memo-card{
-            border:1px solid rgba(214,223,234,.78);
-            border-radius:14px;
-            padding:16px 18px;
-            margin-bottom:10px;
-            background:rgba(255,255,255,.95);
-            box-shadow:0 2px 8px rgba(15,23,42,.05);
-            transition:box-shadow .2s,border-color .2s,transform .2s,background .2s;
+            position:relative;
+            display:flex;
+            flex-direction:column;
+            align-items:flex-start;
+            gap:8px;
+            border:1px solid #e5e7eb;
+            border-radius:8px;
+            padding:12px 16px;
+            margin-bottom:8px;
+            background:#fff;
+            transition:background .15s,border-color .15s;
         }
         .ffn-memo-card:hover{
-            box-shadow:0 12px 28px rgba(15,23,42,.12);
-            border-color:rgba(189,203,220,.9);
-            background:#fff;
-            transform:translateY(-1px);
+            background:#fafafa;
         }
         .ffn-memo-content{
             font-size:14px;
@@ -439,9 +457,9 @@
         .ffn-memo-content blockquote{
             margin:.6em 0;
             padding:.1em .8em;
-            border-left:3px solid #99c4f5;
-            color:#3f4a59;
-            background:#f4f8ff;
+            border-left:3px solid #d1d5db;
+            color:#374151;
+            background:#f9fafb;
         }
         .ffn-memo-content ul,.ffn-memo-content ol{
             margin:.5em 0;
@@ -449,7 +467,7 @@
         }
         .ffn-memo-content code{
             font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,'Liberation Mono','Courier New',monospace;
-            background:#f2f5fa;
+            background:#f3f4f6;
             border-radius:6px;
             padding:2px 6px;
             font-size:12px;
@@ -458,7 +476,7 @@
             margin:.6em 0;
             background:#111827;
             color:#f9fafb;
-            border-radius:10px;
+            border-radius:6px;
             padding:12px;
             overflow:auto;
         }
@@ -486,74 +504,85 @@
             align-items:center;
             padding:4px 10px;
             border-radius:999px;
-            border:1px solid #d8e4f2;
-            background:#f3f8fe;
+            border:1px solid #e5e7eb;
+            background:#f3f4f6;
             font-size:11px;
             font-weight:600;
-            color:#335b86;
+            color:#374151;
             white-space:nowrap;
             max-width:180px;
             overflow:hidden;
             text-overflow:ellipsis;
         }
-        .ffn-memo-tag.ffn-note-custom-tag{
-            background:#e9f2ff;
-            border-color:#cfe3ff;
-            color:#0a3d7a;
-        }
-        .ffn-memo-tag.ffn-note-custom-tag:nth-child(4n+1){
-            background:#e9f7ef;
-            border-color:#caead7;
-            color:#175a38;
-        }
-        .ffn-memo-tag.ffn-note-custom-tag:nth-child(4n+2){
-            background:#fff4e8;
-            border-color:#f8dec0;
-            color:#4d2b06;
-        }
-        .ffn-memo-tag.ffn-note-custom-tag:nth-child(4n+3){
-            background:#f2eeff;
-            border-color:#ddd2ff;
-            color:#2f1d66;
-        }
         .ffn-memo-time{
             font-size:12px;
-            color:#8b97a8;
+            color:#6b7280;
             white-space:nowrap;
         }
         .ffn-memo-actions{
             display:flex;
             gap:4px;
-            opacity:0;
-            transform:translateY(2px);
-            transition:opacity .18s,transform .18s;
             flex-shrink:0;
-        }
-        .ffn-memo-card:hover .ffn-memo-actions{
-            opacity:1;
-            transform:translateY(0);
         }
         .ffn-memo-action-btn{
             padding:5px 10px;
-            border-radius:8px;
+            border-radius:6px;
             border:none;
             background:transparent;
             cursor:pointer;
             font-size:12px;
-            color:#5f6b7a;
-            transition:background .1s,color .1s,box-shadow .1s;
+            color:#4b5563;
+            transition:background .1s,color .1s;
         }
         .ffn-memo-action-btn:hover{
-            background:#edf2f8;
+            background:#f3f4f6;
             color:#1d1d1f;
         }
         .ffn-memo-action-btn:focus-visible{
             outline:none;
-            box-shadow:0 0 0 3px rgba(0,113,227,.16);
+            outline:2px solid #4f46e5;
+        }
+        .ffn-memo-action-btn.ffn-primary{
+            background:#4f46e5;
+            color:#fff;
+        }
+        .ffn-memo-action-btn.ffn-primary:hover{
+            background:#4338ca;
+            color:#fff;
         }
         .ffn-memo-action-btn.ffn-delete:hover{
-            background:#ffecec;
-            color:#d83b3b;
+            background:#fef2f2;
+            color:#dc2626;
+        }
+        .ffn-inline-editor{
+            width:100%;
+        }
+        .ffn-inline-editor textarea{
+            width:100%;
+            box-sizing:border-box;
+            border:1px solid #d1d5db;
+            border-radius:6px;
+            background:transparent;
+            padding:8px 10px;
+            font-size:14px;
+            line-height:1.7;
+            color:#1f2937;
+            resize:none;
+            overflow-x:hidden;
+            overflow-y:auto;
+            outline:none;
+            font-family:inherit;
+        }
+        .ffn-inline-editor textarea:focus{
+            border-color:#4f46e5;
+            outline:2px solid #4f46e5;
+        }
+        .ffn-inline-actions{
+            width:100%;
+            display:flex;
+            justify-content:flex-end;
+            gap:8px;
+            margin-top:8px;
         }
         .ffn-empty-state{
             display:flex;
@@ -905,6 +934,11 @@
         return html.join('');
     }
 
+    function autoGrowTextarea(textarea) {
+        textarea.style.height = 'auto';
+        textarea.style.height = `${textarea.scrollHeight || 0}px`;
+    }
+
     function openNoteEditor(options) {
         const existing = document.querySelector('.ffn-note-editor-backdrop');
         if (existing) existing.remove();
@@ -935,14 +969,58 @@
         textarea.placeholder = '請輸入筆記內容...';
         textarea.value = getInitialEditorText(note, options, draftKey);
 
+        const tabs = document.createElement('div');
+        tabs.className = 'ffn-note-editor-tabs';
+
+        const editTabBtn = document.createElement('button');
+        editTabBtn.type = 'button';
+        editTabBtn.className = 'ffn-note-editor-tab active';
+        editTabBtn.textContent = '✏️ 編輯';
+
+        const previewTabBtn = document.createElement('button');
+        previewTabBtn.type = 'button';
+        previewTabBtn.className = 'ffn-note-editor-tab';
+        previewTabBtn.textContent = '👁️ 預覽';
+
+        tabs.append(editTabBtn, previewTabBtn);
+
+        const editPanel = document.createElement('div');
+        editPanel.className = 'ffn-note-editor-panel active';
+        editPanel.appendChild(textarea);
+
+        const previewPanel = document.createElement('div');
+        previewPanel.className = 'ffn-note-editor-panel';
+
+        const previewContent = document.createElement('div');
+        previewContent.className = 'ffn-note-preview ffn-memo-content';
+        previewPanel.appendChild(previewContent);
+
         const tagsInput = document.createElement('input');
         tagsInput.type = 'text';
         tagsInput.className = 'ffn-note-tags-input';
         tagsInput.placeholder = '標籤（以逗號分隔，例如：urgent, follow-up）';
         tagsInput.value = note ? formatTagsForInput(note.tags) : '';
 
+        const updatePreview = () => {
+            previewContent.innerHTML = renderMarkdown(textarea.value || '');
+        };
+        updatePreview();
+
+        const switchEditorTab = (tab) => {
+            const isEdit = tab === 'edit';
+            editTabBtn.classList.toggle('active', isEdit);
+            previewTabBtn.classList.toggle('active', !isEdit);
+            editPanel.classList.toggle('active', isEdit);
+            previewPanel.classList.toggle('active', !isEdit);
+        };
+        editTabBtn.addEventListener('click', () => switchEditorTab('edit'));
+        previewTabBtn.addEventListener('click', () => switchEditorTab('preview'));
+
         const debouncedSaveDraft = debounce(() => saveDraftText(draftKey, textarea.value), DRAFT_DEBOUNCE_MS);
-        textarea.addEventListener('input', debouncedSaveDraft);
+        textarea.addEventListener('input', () => {
+            debouncedSaveDraft();
+            updatePreview();
+        });
 
         const actions = document.createElement('div');
         actions.className = 'ffn-actions';
@@ -954,18 +1032,7 @@
         saveBtn.className = 'ffn-primary';
         saveBtn.textContent = '儲存';
 
-        cancelBtn.addEventListener('click', () => {
-            flushDraftSave(debouncedSaveDraft, draftKey, textarea);
-            closeNoteEditor(box);
-        });
-        backdrop.addEventListener('click', (e) => {
-            if (e.target === backdrop) {
-                flushDraftSave(debouncedSaveDraft, draftKey, textarea);
-                closeNoteEditor(box);
-            }
-        });
-
-        saveBtn.addEventListener('click', () => {
+        const saveNote = () => {
             const text = textarea.value.trim();
             const tags = parseTagsInput(tagsInput.value);
             if (!text) {
@@ -1004,10 +1071,31 @@
             clearDraftText(draftKey);
             closeNoteEditor(box);
             renderNotesList();
+        };
+
+        cancelBtn.addEventListener('click', () => {
+            flushDraftSave(debouncedSaveDraft, draftKey, textarea);
+            closeNoteEditor(box);
         });
+        backdrop.addEventListener('click', (e) => {
+            if (e.target === backdrop) {
+                flushDraftSave(debouncedSaveDraft, draftKey, textarea);
+                closeNoteEditor(box);
+            }
+        });
+        saveBtn.addEventListener('click', saveNote);
+
+        const handleSaveShortcut = (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                e.preventDefault();
+                saveNote();
+            }
+        };
+        textarea.addEventListener('keydown', handleSaveShortcut);
+        tagsInput.addEventListener('keydown', handleSaveShortcut);
 
         actions.append(cancelBtn, saveBtn);
-        box.append(title, info, textarea, tagsInput, actions);
+        box.append(title, info, tabs, editPanel, previewPanel, tagsInput, actions);
         backdrop.appendChild(box);
         document.body.appendChild(backdrop);
     }
@@ -1082,12 +1170,50 @@
         return dLabel;
     }
 
+    function startInlineEdit(note) {
+        if (!note) return;
+        editingInlineNoteId = note.id;
+        editingInlineText = note.text || '';
+        renderNotesList();
+    }
+
+    function cancelInlineEdit() {
+        editingInlineNoteId = null;
+        editingInlineText = '';
+        renderNotesList();
+    }
+
+    function saveInlineEdit(note, text) {
+        const nextText = String(text || '').trim();
+        if (!nextText) {
+            alert('請輸入筆記內容');
+            return;
+        }
+
+        const store = loadStore();
+        const idx = store.notes.findIndex(n => n.id === note.id);
+        if (idx < 0) return;
+        store.notes[idx] = {
+            ...store.notes[idx],
+            text: nextText,
+            updatedAt: new Date().toISOString()
+        };
+        saveStore(store);
+        editingInlineNoteId = null;
+        editingInlineText = '';
+        renderNotesList();
+    }
+
     function renderNotesList() {
         if (!notesPanelEl) return;
         const list = notesPanelEl.querySelector('.ffn-notes-list');
         list.innerHTML = '';
 
         const notes = getFilteredSortedNotes();
+        if (editingInlineNoteId && !notes.some(note => note.id === editingInlineNoteId)) {
+            editingInlineNoteId = null;
+            editingInlineText = '';
+        }
 
         // Update header count
         const headerTitle = notesPanelEl.querySelector('.ffn-main-header-title');
@@ -1120,8 +1246,59 @@
 
             const content = document.createElement('div');
             content.className = 'ffn-memo-content';
-            // renderMarkdown 內部會先 escape 使用者輸入，再套用受控 markdown 標記
-            content.innerHTML = renderMarkdown(note.text || '');
+            if (note.id === editingInlineNoteId) {
+                const inlineEditor = document.createElement('div');
+                inlineEditor.className = 'ffn-inline-editor';
+
+                const textarea = document.createElement('textarea');
+                textarea.rows = 1;
+                textarea.value = editingInlineText;
+                textarea.autofocus = true;
+                autoGrowTextarea(textarea);
+                textarea.addEventListener('input', () => {
+                    editingInlineText = textarea.value;
+                    autoGrowTextarea(textarea);
+                });
+                textarea.addEventListener('keydown', (e) => {
+                    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                        e.preventDefault();
+                        saveInlineEdit(note, textarea.value);
+                    } else if (e.key === 'Escape') {
+                        e.preventDefault();
+                        cancelInlineEdit();
+                    }
+                });
+
+                const inlineActions = document.createElement('div');
+                inlineActions.className = 'ffn-inline-actions';
+
+                const inlineCancelBtn = document.createElement('button');
+                inlineCancelBtn.type = 'button';
+                inlineCancelBtn.className = 'ffn-memo-action-btn';
+                inlineCancelBtn.textContent = '取消';
+                inlineCancelBtn.addEventListener('click', () => cancelInlineEdit());
+
+                const inlineSaveBtn = document.createElement('button');
+                inlineSaveBtn.type = 'button';
+                inlineSaveBtn.className = 'ffn-memo-action-btn ffn-primary';
+                inlineSaveBtn.textContent = '儲存';
+                inlineSaveBtn.addEventListener('click', () => saveInlineEdit(note, textarea.value));
+
+                inlineActions.append(inlineCancelBtn, inlineSaveBtn);
+                inlineEditor.append(textarea, inlineActions);
+                content.appendChild(inlineEditor);
+                setTimeout(() => {
+                    textarea.focus();
+                    autoGrowTextarea(textarea);
+                }, 0);
+            } else {
+                // renderMarkdown 內部會先 escape 使用者輸入，再套用受控 markdown 標記
+                content.innerHTML = renderMarkdown(note.text || '');
+                content.addEventListener('dblclick', (e) => {
+                    e.preventDefault();
+                    startInlineEdit(note);
+                });
+            }
 
             const footer = document.createElement('div');
             footer.className = 'ffn-memo-footer';
@@ -1160,7 +1337,7 @@
             const editBtn = document.createElement('button');
             editBtn.className = 'ffn-memo-action-btn';
             editBtn.textContent = '✏️ 編輯';
-            editBtn.addEventListener('click', () => openNoteEditor({ note }));
+            editBtn.addEventListener('click', () => startInlineEdit(note));
 
             const delBtn = document.createElement('button');
             delBtn.className = 'ffn-memo-action-btn ffn-delete';
@@ -1170,6 +1347,10 @@
                 const store = loadStore();
                 store.notes = store.notes.filter(n => n.id !== note.id);
                 saveStore(store);
+                if (editingInlineNoteId === note.id) {
+                    editingInlineNoteId = null;
+                    editingInlineText = '';
+                }
                 renderNotesList();
             });
 
