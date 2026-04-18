@@ -25,6 +25,7 @@
     const DRAFT_DEBOUNCE_MS = 500;
     const DRAFT_KEY_EMPTY_PLACEHOLDER = '_';
     const MAX_NOTE_TAGS = 20;
+    const PREVIEW_PLACEHOLDER_HTML = '<p class="ffn-preview-placeholder">預覽區域</p>';
     const FLASH_MS = 300;
     const KENDO_RETRY_MS = 300;
     const GRID_OBSERVER_RETRY_MS = 500;
@@ -1109,7 +1110,6 @@
 
         const miniPreviewWrap = document.createElement('details');
         miniPreviewWrap.className = 'ffn-note-mini-preview-wrap';
-        miniPreviewWrap.open = true;
 
         const miniPreviewSummary = document.createElement('summary');
         miniPreviewSummary.textContent = '即時預覽';
@@ -1118,6 +1118,7 @@
         miniPreviewContent.className = 'ffn-note-mini-preview ffn-memo-content';
         miniPreviewWrap.append(miniPreviewSummary, miniPreviewContent);
         editPanel.appendChild(miniPreviewWrap);
+        miniPreviewWrap.open = true;
 
         const previewPanel = document.createElement('div');
         previewPanel.className = 'ffn-note-editor-panel';
@@ -1135,7 +1136,7 @@
         const updatePreview = () => {
             const html = renderMarkdown(textarea.value || '');
             previewContent.innerHTML = html;
-            miniPreviewContent.innerHTML = html || '<p class="ffn-preview-placeholder">預覽區域</p>';
+            miniPreviewContent.innerHTML = html || PREVIEW_PLACEHOLDER_HTML;
         };
         updatePreview();
 
@@ -1324,7 +1325,7 @@
         if (!contentEl) return;
 
         card.classList.add('ffn-editing');
-        inlineCardState.set(card, { originalHTML: contentEl.innerHTML, note });
+        inlineCardState.set(card, { originalHTML: contentEl.innerHTML, note: { ...note } });
         contentEl.innerHTML = '';
 
         const editorWrap = document.createElement('div');
@@ -1337,10 +1338,10 @@
 
         const preview = document.createElement('div');
         preview.className = 'ffn-inline-preview ffn-memo-content';
-        preview.innerHTML = renderMarkdown(note.text || '') || '<p class="ffn-preview-placeholder">預覽區域</p>';
+        preview.innerHTML = renderMarkdown(note.text || '') || PREVIEW_PLACEHOLDER_HTML;
 
         const updatePreview = () => {
-            preview.innerHTML = renderMarkdown(textarea.value || '') || '<p class="ffn-preview-placeholder">預覽區域</p>';
+            preview.innerHTML = renderMarkdown(textarea.value || '') || PREVIEW_PLACEHOLDER_HTML;
         };
 
         textarea.addEventListener('input', () => {
@@ -1422,6 +1423,7 @@
         requestAnimationFrame(() => {
             autoGrowTextarea(textarea);
             textarea.focus();
+            if (typeof textarea.setSelectionRange === 'function') textarea.setSelectionRange(0, 0);
         });
     }
 
@@ -1453,14 +1455,17 @@
         store.notes[idx].text = trimmed;
         store.notes[idx].updatedAt = new Date().toISOString();
         saveStore(store);
-        note.text = trimmed;
-        note.updatedAt = store.notes[idx].updatedAt;
+        const reboundNote = {
+            ...note,
+            text: trimmed,
+            updatedAt: store.notes[idx].updatedAt
+        };
 
         const contentEl = card.querySelector('.ffn-memo-content');
         if (!contentEl) return;
         card.classList.remove('ffn-editing');
         contentEl.innerHTML = renderMarkdown(trimmed);
-        bindInlineEditTrigger(card, note);
+        bindInlineEditTrigger(card, reboundNote);
         inlineCardState.delete(card);
     }
 
