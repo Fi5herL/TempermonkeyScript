@@ -936,7 +936,7 @@
 
     function autoGrowTextarea(textarea) {
         textarea.style.height = 'auto';
-        textarea.style.height = `${textarea.scrollHeight || 0}px`;
+        textarea.style.height = `${textarea.scrollHeight}px`;
     }
 
     function openNoteEditor(options) {
@@ -1184,7 +1184,7 @@
     }
 
     function saveInlineEdit(note, text) {
-        const nextText = String(text || '').trim();
+        const nextText = (text || '').trim();
         if (!nextText) {
             alert('請輸入筆記內容');
             return;
@@ -1251,9 +1251,7 @@
                 inlineEditor.className = 'ffn-inline-editor';
 
                 const textarea = document.createElement('textarea');
-                textarea.rows = 1;
                 textarea.value = editingInlineText;
-                textarea.autofocus = true;
                 autoGrowTextarea(textarea);
                 textarea.addEventListener('input', () => {
                     editingInlineText = textarea.value;
@@ -1289,7 +1287,6 @@
                 content.appendChild(inlineEditor);
                 setTimeout(() => {
                     textarea.focus();
-                    autoGrowTextarea(textarea);
                 }, 0);
             } else {
                 // renderMarkdown 內部會先 escape 使用者輸入，再套用受控 markdown 標記
