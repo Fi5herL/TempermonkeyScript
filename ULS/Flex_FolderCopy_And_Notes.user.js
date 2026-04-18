@@ -1315,7 +1315,7 @@
     function enterInlineEdit(card, note) {
         if (!card || !note) return;
         if (card.classList.contains('ffn-editing')) return;
-        const existing = document.querySelector('.ffn-memo-card.ffn-editing');
+        const existing = notesPanelEl ? notesPanelEl.querySelector('.ffn-memo-card.ffn-editing') : null;
         if (existing && existing !== card) exitInlineEdit(existing);
 
         const contentEl = card.querySelector('.ffn-memo-content');
