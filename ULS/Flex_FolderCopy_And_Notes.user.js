@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Flex 📁 Folder Copy & 📝 Quick Notes
 // @namespace    fisher-flex-folder-notes
-// @version      1.2.0
+// @version      1.2.1
 // @description  在 Flex Dashboard 每列案件旁加上「複製資料夾名稱」按鈕與「快速筆記」功能，支援依時間/專案瀏覽歷史筆記。
 // @match        https://portal.ul.com/Dashboard*
 // @grant        GM_addStyle
@@ -42,38 +42,42 @@
             top:50%;
             transform:translateY(-50%);
             width:5px;
-            height:26px;
-            background:#94a3b8;
-            border-radius:0 4px 4px 0;
+            height:28px;
+            background:#d5deea;
+            border:1px solid rgba(148,163,184,.45);
+            border-left:none;
+            border-radius:0 8px 8px 0;
             overflow:hidden;
             display:flex;
             align-items:center;
-            gap:2px;
+            gap:4px;
             padding:0;
-            transition:width .18s ease,background .18s ease,padding .18s ease,border-radius .18s ease;
+            transition:width .24s ease,background .2s ease,padding .2s ease,border-radius .2s ease,box-shadow .2s ease,transform .2s ease,border-color .2s ease;
             z-index:3;
             cursor:pointer;
-            box-shadow:1px 0 4px rgba(0,0,0,.15);
+            box-shadow:0 4px 12px rgba(15,23,42,.15);
         }
         .ffn-btn-drawer:hover{
-            width:60px;
-            background:#f1f5f9;
-            border:1px solid #d1d5db;
-            border-radius:0 10px 10px 0;
-            padding:0 4px;
+            width:68px;
+            background:rgba(247,249,252,.96);
+            border-color:rgba(203,213,225,.95);
+            border-radius:0 12px 12px 0;
+            padding:0 6px;
+            transform:translateY(-50%) translateX(1px);
+            box-shadow:0 10px 24px rgba(15,23,42,.16);
         }
 
         /* ── 列按鈕（放在抽屜內，平時隱藏） ── */
         .ffn-row-btn{
             position:static;
             transform:none;
-            width:24px;
-            height:24px;
+            width:26px;
+            height:26px;
             border-radius:50%;
-            border:1px solid #d1d5db;
-            background:#fff;
+            border:1px solid #d4dce5;
+            background:rgba(255,255,255,.97);
             cursor:pointer;
-            box-shadow:0 1px 3px rgba(0,0,0,.12);
+            box-shadow:0 1px 4px rgba(15,23,42,.16);
             display:flex;
             align-items:center;
             justify-content:center;
@@ -82,196 +86,257 @@
             flex-shrink:0;
             opacity:0;
             pointer-events:none;
-            transition:opacity .1s .05s;
+            transform:translateY(2px) scale(.96);
+            transition:opacity .16s .04s,transform .18s ease,background .15s,border-color .15s,box-shadow .15s;
         }
         .ffn-btn-drawer:hover .ffn-row-btn{
             opacity:1;
             pointer-events:auto;
+            transform:translateY(0) scale(1);
         }
-        .ffn-row-btn:hover{ background:#f3f4f6; }
+        .ffn-row-btn:hover{
+            background:#f5f7fb;
+            border-color:#bcc8d6;
+            box-shadow:0 4px 10px rgba(15,23,42,.18);
+        }
+        .ffn-row-btn:focus-visible{
+            outline:none;
+            border-color:#0071e3;
+            box-shadow:0 0 0 4px rgba(0,113,227,.2);
+        }
         .ffn-copy-flash{ background:#d1fae5 !important; }
 
         /* ── 筆記編輯對話框 ── */
         .ffn-note-editor-backdrop{
             position:fixed;
             inset:0;
-            background:rgba(0,0,0,.45);
+            background:rgba(20,26,34,.36);
+            backdrop-filter:blur(12px) saturate(140%);
+            -webkit-backdrop-filter:blur(12px) saturate(140%);
+            will-change:backdrop-filter;
             z-index:99999;
             display:flex;
             align-items:center;
             justify-content:center;
+            animation:ffn-fade-in .22s ease-out;
         }
         .ffn-note-editor{
-            background:#fff;
-            border-radius:12px;
-            box-shadow:0 24px 64px rgba(0,0,0,.25);
+            background:rgba(255,255,255,.88);
+            border:1px solid rgba(255,255,255,.7);
+            border-radius:16px;
+            box-shadow:0 24px 56px rgba(15,23,42,.24);
             width:560px;
             max-width:94vw;
-            padding:20px 24px;
-            color:#111;
+            padding:24px 26px;
+            color:#1d1d1f;
             font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;
+            animation:ffn-slide-up .24s cubic-bezier(.2,.8,.2,1);
         }
         .ffn-note-editor h3{
-            margin:0 0 12px;
-            font-size:16px;
+            margin:0 0 14px;
+            font-size:20px;
             font-weight:600;
+            letter-spacing:.01em;
+            color:#1d1d1f;
         }
         .ffn-note-info{
             font-size:12px;
-            color:#6b7280;
-            background:#f9fafb;
-            border:1px solid #e5e7eb;
-            border-radius:6px;
-            padding:8px 10px;
-            margin-bottom:12px;
+            color:#556170;
+            background:rgba(246,248,251,.9);
+            border:1px solid rgba(210,218,229,.86);
+            border-radius:10px;
+            padding:10px 12px;
+            margin-bottom:14px;
+            line-height:1.5;
         }
         .ffn-note-editor textarea{
             width:100%;
-            min-height:140px;
+            min-height:152px;
             resize:vertical;
             box-sizing:border-box;
-            border:1px solid #e5e7eb;
-            border-radius:8px;
-            padding:10px 12px;
+            border:1px solid #d4dce6;
+            border-radius:12px;
+            background:rgba(255,255,255,.94);
+            padding:12px 14px;
             font-size:14px;
-            line-height:1.6;
-            color:#111;
+            line-height:1.7;
+            color:#1f2937;
             outline:none;
-            transition:border-color .15s;
+            transition:border-color .15s,box-shadow .15s,background .15s;
             font-family:inherit;
         }
-        .ffn-note-editor textarea:focus{ border-color:#6366f1; }
+        .ffn-note-editor textarea:focus{
+            border-color:#0071e3;
+            box-shadow:0 0 0 4px rgba(0,113,227,.16);
+            background:#fff;
+        }
         .ffn-note-tags-input{
-            margin-top:10px;
+            margin-top:12px;
             width:100%;
             box-sizing:border-box;
-            border:1px solid #e5e7eb;
-            border-radius:8px;
-            padding:8px 10px;
+            border:1px solid #d4dce6;
+            border-radius:12px;
+            background:rgba(255,255,255,.94);
+            padding:10px 12px;
             font-size:13px;
-            color:#111;
+            color:#1f2937;
             font-family:inherit;
             outline:none;
-            transition:border-color .15s;
+            transition:border-color .15s,box-shadow .15s,background .15s;
         }
-        .ffn-note-tags-input:focus{ border-color:#6366f1; }
+        .ffn-note-tags-input:focus{
+            border-color:#0071e3;
+            box-shadow:0 0 0 4px rgba(0,113,227,.16);
+            background:#fff;
+        }
         .ffn-actions{
-            margin-top:12px;
+            margin-top:16px;
             display:flex;
-            gap:8px;
+            gap:10px;
             justify-content:flex-end;
         }
         .ffn-note-editor button{
-            padding:8px 18px;
-            border-radius:8px;
-            border:1px solid #e5e7eb;
+            padding:9px 18px;
+            border-radius:10px;
+            border:1px solid #d3dbe5;
             background:#fff;
             cursor:pointer;
             font-size:13px;
-            font-weight:500;
+            font-weight:600;
             color:#374151;
-            transition:background .15s,border-color .15s;
+            transition:background .15s,border-color .15s,color .15s,box-shadow .15s,transform .15s;
         }
-        .ffn-note-editor button:hover{ background:#f9fafb; }
+        .ffn-note-editor button:hover{
+            background:#f5f8fc;
+            border-color:#c2cddd;
+            transform:translateY(-1px);
+        }
+        .ffn-note-editor button:focus-visible{
+            outline:none;
+            border-color:#0071e3;
+            box-shadow:0 0 0 4px rgba(0,113,227,.16);
+        }
         .ffn-note-editor button.ffn-primary{
-            background:#4f46e5;
+            background:#0071e3;
             color:#fff;
-            border-color:#4f46e5;
+            border-color:#0071e3;
+            box-shadow:0 8px 18px rgba(0,113,227,.28);
         }
         .ffn-note-editor button.ffn-primary:hover{
-            background:#4338ca;
-            border-color:#4338ca;
+            background:#0066cc;
+            border-color:#0066cc;
+            box-shadow:0 10px 20px rgba(0,102,204,.3);
         }
 
         /* ── Memos 風格筆記面板 ── */
         .ffn-notes-overlay{
             position:fixed;
             inset:0;
-            background:rgba(0,0,0,.45);
+            background:rgba(20,26,34,.36);
+            backdrop-filter:blur(12px) saturate(140%);
+            -webkit-backdrop-filter:blur(12px) saturate(140%);
+            will-change:backdrop-filter;
             z-index:99997;
             display:flex;
             align-items:center;
             justify-content:center;
+            animation:ffn-fade-in .22s ease-out;
         }
         .ffn-notes-panel{
-            width:90vw;
-            max-width:1100px;
-            height:85vh;
+            width:92vw;
+            max-width:1120px;
+            height:86vh;
             display:flex;
-            border-radius:12px;
+            border-radius:16px;
             overflow:hidden;
-            background:#fff;
-            box-shadow:0 24px 64px rgba(0,0,0,.25);
-            color:#1a1a1a;
+            background:rgba(255,255,255,.9);
+            border:1px solid rgba(255,255,255,.7);
+            box-shadow:0 30px 72px rgba(15,23,42,.24);
+            color:#1d1d1f;
             font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;
+            animation:ffn-slide-up .24s cubic-bezier(.2,.8,.2,1);
         }
 
         /* Sidebar */
         .ffn-sidebar{
             width:252px;
             flex-shrink:0;
-            background:#f7f7f8;
-            border-right:1px solid #e8e8e8;
+            background:linear-gradient(180deg,rgba(245,248,252,.97) 0%,rgba(240,244,249,.95) 100%);
+            border-right:1px solid rgba(216,224,235,.95);
             display:flex;
             flex-direction:column;
-            padding:20px 16px;
-            gap:14px;
+            padding:24px 18px;
+            gap:16px;
             overflow-y:auto;
             box-sizing:border-box;
         }
         .ffn-sidebar-title{
-            font-size:17px;
+            font-size:18px;
             font-weight:600;
-            color:#111;
+            color:#1d1d1f;
             margin:0;
             display:flex;
             align-items:center;
-            gap:7px;
+            gap:8px;
+            letter-spacing:.01em;
         }
         .ffn-sidebar-new-btn{
             width:100%;
-            padding:9px 14px;
-            border-radius:8px;
-            background:#4f46e5;
+            padding:10px 14px;
+            border-radius:10px;
+            background:#0071e3;
             color:#fff;
             border:none;
             font-size:13px;
-            font-weight:500;
+            font-weight:600;
             cursor:pointer;
             display:flex;
             align-items:center;
             gap:6px;
             justify-content:center;
-            transition:background .15s;
+            box-shadow:0 10px 20px rgba(0,113,227,.2);
+            transition:background .15s,transform .15s,box-shadow .15s;
         }
-        .ffn-sidebar-new-btn:hover{ background:#4338ca; }
+        .ffn-sidebar-new-btn:hover{
+            background:#0066cc;
+            transform:translateY(-1px);
+            box-shadow:0 12px 22px rgba(0,102,204,.24);
+        }
+        .ffn-sidebar-new-btn:focus-visible{
+            outline:none;
+            box-shadow:0 0 0 4px rgba(0,113,227,.22);
+        }
         .ffn-sidebar-section{
             display:flex;
             flex-direction:column;
-            gap:6px;
+            gap:8px;
         }
         .ffn-sidebar-label{
             font-size:11px;
             font-weight:600;
-            color:#9ca3af;
+            color:#7f8da1;
             text-transform:uppercase;
-            letter-spacing:.05em;
+            letter-spacing:.08em;
         }
         .ffn-sidebar input,
         .ffn-sidebar select{
             width:100%;
-            padding:7px 10px;
-            border:1px solid #e0e0e0;
-            border-radius:6px;
-            background:#fff;
+            padding:9px 11px;
+            border:1px solid #d1dbe6;
+            border-radius:10px;
+            background:rgba(255,255,255,.92);
             font-size:13px;
-            color:#111;
+            color:#1f2937;
             box-sizing:border-box;
             outline:none;
-            transition:border-color .15s;
+            transition:border-color .15s,box-shadow .15s,background .15s;
         }
         .ffn-sidebar input:focus,
-        .ffn-sidebar select:focus{ border-color:#6366f1; }
+        .ffn-sidebar select:focus{
+            border-color:#0071e3;
+            box-shadow:0 0 0 4px rgba(0,113,227,.14);
+            background:#fff;
+        }
 
         /* Main feed */
         .ffn-main{
@@ -279,75 +344,89 @@
             display:flex;
             flex-direction:column;
             overflow:hidden;
-            background:#fff;
+            background:rgba(252,253,255,.9);
         }
         .ffn-main-header{
             display:flex;
             align-items:center;
             justify-content:space-between;
-            padding:14px 20px;
-            border-bottom:1px solid #f0f0f0;
+            padding:16px 24px;
+            border-bottom:1px solid rgba(221,228,238,.85);
             flex-shrink:0;
+            background:rgba(255,255,255,.75);
         }
         .ffn-main-header-title{
             font-size:14px;
-            font-weight:500;
-            color:#6b7280;
+            font-weight:600;
+            color:#5d6a79;
+            letter-spacing:.01em;
         }
         .ffn-close-btn{
-            width:30px;
-            height:30px;
+            width:32px;
+            height:32px;
             border-radius:50%;
             border:none;
-            background:#f3f4f6;
+            background:#eef2f7;
             cursor:pointer;
             font-size:15px;
             display:flex;
             align-items:center;
             justify-content:center;
-            color:#6b7280;
-            transition:background .15s;
+            color:#6b7787;
+            transition:background .15s,color .15s,transform .15s,box-shadow .15s;
             line-height:1;
         }
-        .ffn-close-btn:hover{ background:#e5e7eb; color:#111; }
+        .ffn-close-btn:hover{
+            background:#e2e8f0;
+            color:#1d1d1f;
+            transform:translateY(-1px);
+        }
+        .ffn-close-btn:focus-visible{
+            outline:none;
+            box-shadow:0 0 0 4px rgba(0,113,227,.16);
+        }
         .ffn-notes-list{
             flex:1;
             overflow-y:auto;
-            padding:12px 20px 20px;
+            padding:16px 24px 24px;
+            background:linear-gradient(180deg,rgba(255,255,255,.7) 0%,rgba(249,251,255,.62) 100%);
         }
 
         /* Date group */
         .ffn-date-group{
             font-size:11px;
             font-weight:600;
-            color:#9ca3af;
+            color:#8b97a9;
             text-transform:uppercase;
             letter-spacing:.06em;
-            margin:18px 0 8px;
+            margin:20px 0 10px;
             padding-left:2px;
         }
         .ffn-date-group:first-child{ margin-top:4px; }
 
         /* Memo card */
         .ffn-memo-card{
-            border:1px solid #f0f0f0;
-            border-radius:10px;
-            padding:14px 16px;
-            margin-bottom:8px;
-            background:#fff;
-            transition:box-shadow .15s,border-color .15s;
+            border:1px solid rgba(214,223,234,.78);
+            border-radius:14px;
+            padding:16px 18px;
+            margin-bottom:10px;
+            background:rgba(255,255,255,.95);
+            box-shadow:0 2px 8px rgba(15,23,42,.05);
+            transition:box-shadow .2s,border-color .2s,transform .2s,background .2s;
         }
         .ffn-memo-card:hover{
-            box-shadow:0 2px 14px rgba(0,0,0,.07);
-            border-color:#e5e7eb;
+            box-shadow:0 12px 28px rgba(15,23,42,.12);
+            border-color:rgba(189,203,220,.9);
+            background:#fff;
+            transform:translateY(-1px);
         }
         .ffn-memo-content{
             font-size:14px;
-            line-height:1.65;
-            color:#1a1a1a;
+            line-height:1.7;
+            color:#1f2937;
             white-space:normal;
             word-break:break-word;
-            margin-bottom:10px;
+            margin-bottom:12px;
         }
         .ffn-memo-content > :first-child{ margin-top:0; }
         .ffn-memo-content > :last-child{ margin-bottom:0; }
@@ -360,9 +439,9 @@
         .ffn-memo-content blockquote{
             margin:.6em 0;
             padding:.1em .8em;
-            border-left:3px solid #d1d5db;
-            color:#4b5563;
-            background:#f9fafb;
+            border-left:3px solid #99c4f5;
+            color:#3f4a59;
+            background:#f4f8ff;
         }
         .ffn-memo-content ul,.ffn-memo-content ol{
             margin:.5em 0;
@@ -370,17 +449,17 @@
         }
         .ffn-memo-content code{
             font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,'Liberation Mono','Courier New',monospace;
-            background:#f3f4f6;
-            border-radius:4px;
-            padding:1px 5px;
+            background:#f2f5fa;
+            border-radius:6px;
+            padding:2px 6px;
             font-size:12px;
         }
         .ffn-memo-content pre{
             margin:.6em 0;
             background:#111827;
             color:#f9fafb;
-            border-radius:8px;
-            padding:10px;
+            border-radius:10px;
+            padding:12px;
             overflow:auto;
         }
         .ffn-memo-content pre code{
@@ -397,7 +476,7 @@
         .ffn-memo-meta{
             display:flex;
             align-items:center;
-            gap:6px;
+            gap:8px;
             flex-wrap:wrap;
             flex:1;
             min-width:0;
@@ -405,50 +484,76 @@
         .ffn-memo-tag{
             display:inline-flex;
             align-items:center;
-            padding:2px 8px;
-            border-radius:4px;
-            background:#f3f4f6;
-            font-size:12px;
-            color:#374151;
+            padding:4px 10px;
+            border-radius:999px;
+            border:1px solid #d8e4f2;
+            background:#f3f8fe;
+            font-size:11px;
+            font-weight:600;
+            color:#335b86;
             white-space:nowrap;
             max-width:180px;
             overflow:hidden;
             text-overflow:ellipsis;
         }
         .ffn-memo-tag.ffn-note-custom-tag{
-            background:#eef2ff;
-            color:#4338ca;
+            background:#e9f2ff;
+            border-color:#cfe3ff;
+            color:#0a3d7a;
+        }
+        .ffn-memo-tag.ffn-note-custom-tag:nth-child(4n+1){
+            background:#e9f7ef;
+            border-color:#caead7;
+            color:#175a38;
+        }
+        .ffn-memo-tag.ffn-note-custom-tag:nth-child(4n+2){
+            background:#fff4e8;
+            border-color:#f8dec0;
+            color:#4d2b06;
+        }
+        .ffn-memo-tag.ffn-note-custom-tag:nth-child(4n+3){
+            background:#f2eeff;
+            border-color:#ddd2ff;
+            color:#2f1d66;
         }
         .ffn-memo-time{
             font-size:12px;
-            color:#9ca3af;
+            color:#8b97a8;
             white-space:nowrap;
         }
         .ffn-memo-actions{
             display:flex;
-            gap:2px;
+            gap:4px;
             opacity:0;
-            transition:opacity .15s;
+            transform:translateY(2px);
+            transition:opacity .18s,transform .18s;
             flex-shrink:0;
         }
-        .ffn-memo-card:hover .ffn-memo-actions{ opacity:1; }
+        .ffn-memo-card:hover .ffn-memo-actions{
+            opacity:1;
+            transform:translateY(0);
+        }
         .ffn-memo-action-btn{
-            padding:4px 9px;
-            border-radius:6px;
+            padding:5px 10px;
+            border-radius:8px;
             border:none;
             background:transparent;
             cursor:pointer;
             font-size:12px;
-            color:#6b7280;
-            transition:background .1s,color .1s;
+            color:#5f6b7a;
+            transition:background .1s,color .1s,box-shadow .1s;
         }
         .ffn-memo-action-btn:hover{
-            background:#f3f4f6;
-            color:#111;
+            background:#edf2f8;
+            color:#1d1d1f;
+        }
+        .ffn-memo-action-btn:focus-visible{
+            outline:none;
+            box-shadow:0 0 0 3px rgba(0,113,227,.16);
         }
         .ffn-memo-action-btn.ffn-delete:hover{
-            background:#fee2e2;
-            color:#ef4444;
+            background:#ffecec;
+            color:#d83b3b;
         }
         .ffn-empty-state{
             display:flex;
@@ -456,11 +561,28 @@
             align-items:center;
             justify-content:center;
             height:220px;
-            color:#9ca3af;
+            color:#8f9bad;
             font-size:14px;
             gap:10px;
         }
-        .ffn-empty-state-icon{ font-size:42px; }
+        .ffn-empty-state-icon{
+            font-size:42px;
+            opacity:.8;
+        }
+        @keyframes ffn-fade-in{
+            from{ opacity:0; }
+            to{ opacity:1; }
+        }
+        @keyframes ffn-slide-up{
+            from{
+                opacity:0;
+                transform:translateY(8px) scale(.99);
+            }
+            to{
+                opacity:1;
+                transform:translateY(0) scale(1);
+            }
+        }
     `);
 
     function analyzeGridHeaders(columnNames = FOLDER_COLUMNS) {
