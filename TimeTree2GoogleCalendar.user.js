@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         TimeTree → Google Calendar Full Sync (range + stable waits + include current month)
 // @namespace    http://tampermonkey.net/
-// @version      3.7.2
-// @description  Scan previous 1 to next 3 months with robust, slower waits; ALWAYS include current month first; sync to GAS; with range inspectors & detailed logs.
+// @version      3.7.3
+// @description  selector update for 2026-04 frontend change; scan previous 1 to next 3 months with robust, slower waits; ALWAYS include current month first; sync to GAS; with range inspectors & detailed logs.
 // @match        https://timetreeapp.com/*
 // @grant        GM_xmlhttpRequest
 // @grant        GM_addStyle
@@ -111,7 +111,7 @@
     let stableSince = null;
 
     while (Date.now() - start < MAX_STABLE_WAIT_MS) {
-      const rawCount = document.querySelectorAll('div.lndlxo5, div.lndlxo6, [data-testid="eventBar"], .event-bar').length;
+      const rawCount = document.querySelectorAll('div.lndlxo3, div.lndlxo4, [data-testid="eventBar"], .event-bar').length;
 
       if (rawCount !== lastCount) {
         lastCount = rawCount;
@@ -169,7 +169,7 @@
     if (dateCells.length < 2) return { events: [] };
 
     const pickDateNum = el =>
-      el.querySelector('._2u4y7t5, .css-g51b5d, .css-q2isom, [data-testid="dayNumber"], .day-number');
+      el.querySelector('._2u4y7t6, ._2u4y7t5, .css-g51b5d, .css-q2isom, [data-testid="dayNumber"], .day-number');
 
     const firstDateElement = pickDateNum(dateCells[0]);
     const lastDateElement  = pickDateNum(dateCells[dateCells.length - 1]);
@@ -206,21 +206,26 @@
       lastDateNum = dateNum;
     });
 
-    const eventElements = document.querySelectorAll('div.lndlxo5, div.lndlxo6, [data-testid="eventBar"], .event-bar');
+    const eventElements = document.querySelectorAll('div.lndlxo3, div.lndlxo4, [data-testid="eventBar"], .event-bar');
     const events = [];
     const colorRegex = /#([a-fA-F0-9]{6}|[a-fA-F0-9]{3})/;
 
     eventElements.forEach(eventEl => {
       const cs = getComputedStyle(eventEl);
-      const rowVar = cs.getPropertyValue('--lndlxo3') || cs.getPropertyValue('--row');
-      const colVar = cs.getPropertyValue('--lndlxo2') || cs.getPropertyValue('--col');
+      const styleAttr2 = eventEl.getAttribute('style') || '';
+      const rowMatch = styleAttr2.match(/--lndlxo0\s*:\s*(\d+)/);
+      const colMatch = styleAttr2.match(/--lndlxo1\s*:\s*(\d+)/);
 
-      const eventDisplayRow = parseInt(String(rowVar).trim(), 10);
-      const startCol = parseInt(String(colVar).trim(), 10);
-      const titleEl = eventEl.querySelector('span.lndlxob, span.lndlxo7, [data-testid="eventTitle"], .event-title');
+      const eventDisplayRow = rowMatch
+        ? parseInt(rowMatch[1], 10)
+        : parseInt(String(cs.getPropertyValue('--lndlxo3') || cs.getPropertyValue('--row')).trim(), 10);
+      const startCol = colMatch
+        ? parseInt(colMatch[1], 10)
+        : parseInt(String(cs.getPropertyValue('--lndlxo2') || cs.getPropertyValue('--col')).trim(), 10);
+      const titleEl = eventEl.querySelector('span.lndlxo6, span.lndlxob, span.lndlxo7, [data-testid="eventTitle"], .event-title');
       if (!titleEl || !eventDisplayRow || !startCol) return;
 
-      const weekRowIndex = Math.floor((eventDisplayRow - 3) / 6);
+      const weekRowIndex = Math.floor((eventDisplayRow - 3) / 7);
       const dateCellIndex = (weekRowIndex * 7) + (startCol - 1);
       const startDate = dateMapByIndex.get(dateCellIndex);
       if (!startDate) return;
@@ -250,9 +255,16 @@
       }
       eventElements.forEach((el, i) => {
         const cs = getComputedStyle(el);
-        const rowVar = cs.getPropertyValue('--lndlxo3') || cs.getPropertyValue('--row');
-        const colVar = cs.getPropertyValue('--lndlxo2') || cs.getPropertyValue('--col');
-        const titleEl = el.querySelector('span.lndlxob, span.lndlxo7, [data-testid="eventTitle"], .event-title');
+        const styleAttr2 = el.getAttribute('style') || '';
+        const rowMatch = styleAttr2.match(/--lndlxo0\s*:\s*(\d+)/);
+        const colMatch = styleAttr2.match(/--lndlxo1\s*:\s*(\d+)/);
+        const rowVar = rowMatch
+          ? rowMatch[1]
+          : String(cs.getPropertyValue('--lndlxo3') || cs.getPropertyValue('--row')).trim();
+        const colVar = colMatch
+          ? colMatch[1]
+          : String(cs.getPropertyValue('--lndlxo2') || cs.getPropertyValue('--col')).trim();
+        const titleEl = el.querySelector('span.lndlxo6, [data-testid="eventTitle"], .event-title');
         const btn = el.querySelector('button');
         const styleAttr = btn ? btn.getAttribute('style') : '';
         console.debug(`[#${i}] row=${rowVar} col=${colVar} title="${titleEl?.textContent?.trim()}" style="${styleAttr}"`);
@@ -279,7 +291,12 @@
       const curLabel = document.querySelector('time[datetime]')?.getAttribute('datetime');
       const [yy, mm] = (curLabel || '').split('-').map(n => parseInt(n, 10));
       const target = new Date(yy, (mm || 1) - 1 + (dir === 'next' ? 1 : -1), 1);
-      document.querySelector(`button[value="${dir}"]`)?.click();
+      (
+        document.querySelector(`button[value="${dir}"]`) ||
+        document.querySelector(`button[aria-label*="${dir}" i]`) ||
+        document.querySelector(`[data-test-id="${dir}-button"]`) ||
+        document.querySelector(`[data-test-id="navigate-${dir}"]`)
+      )?.click();
 
       // ① 等月份文字切換
       await waitFor_(() => {
