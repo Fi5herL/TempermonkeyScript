@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Flex 📁 Folder Copy & 📝 Quick Notes
 // @namespace    fisher-flex-folder-notes
-// @version      1.2.1
+// @version      2.0.0
 // @description  在 Flex Dashboard 每列案件旁加上「複製資料夾名稱」按鈕與「快速筆記」功能，支援依時間/專案瀏覽歷史筆記。
 // @match        https://portal.ul.com/Dashboard*
 // @grant        GM_addStyle
@@ -25,6 +25,7 @@
     const DRAFT_DEBOUNCE_MS = 500;
     const DRAFT_KEY_EMPTY_PLACEHOLDER = '_';
     const MAX_NOTE_TAGS = 20;
+    const PREVIEW_PLACEHOLDER_HTML = '<p class="ffn-preview-placeholder">預覽區域</p>';
     const FLASH_MS = 300;
     const KENDO_RETRY_MS = 300;
     const GRID_OBSERVER_RETRY_MS = 500;
@@ -33,8 +34,7 @@
     let notesPanelEl = null;
     let gridObserver = null;
     let uuidCounter = 0;
-    let editingInlineNoteId = null;
-    let editingInlineText = '';
+    const inlineCardState = new WeakMap();
 
     GM_addStyle(`
         /* ── 側邊收合抽屜 ── */
@@ -198,6 +198,33 @@
             padding:12px 14px;
             background:#fff;
             overflow:auto;
+        }
+        .ffn-note-mini-preview-wrap{
+            margin-top:10px;
+            border:1px solid #e5e7eb;
+            border-radius:6px;
+            background:#fff;
+            overflow:hidden;
+        }
+        .ffn-note-mini-preview-wrap > summary{
+            cursor:pointer;
+            user-select:none;
+            list-style:none;
+            padding:8px 12px;
+            font-size:12px;
+            color:#6b7280;
+            border-bottom:1px solid #f3f4f6;
+        }
+        .ffn-note-mini-preview-wrap > summary::-webkit-details-marker{ display:none; }
+        .ffn-note-mini-preview{
+            min-height:68px;
+            max-height:180px;
+            overflow:auto;
+            padding:10px 12px;
+            font-size:13px;
+        }
+        .ffn-preview-placeholder{
+            opacity:.4;
         }
         .ffn-note-tags-input{
             margin-top:12px;
@@ -439,12 +466,14 @@
             background:#fafafa;
         }
         .ffn-memo-content{
+            width:100%;
             font-size:14px;
             line-height:1.7;
             color:#1f2937;
             white-space:normal;
             word-break:break-word;
             margin-bottom:12px;
+            cursor:text;
         }
         .ffn-memo-content > :first-child{ margin-top:0; }
         .ffn-memo-content > :last-child{ margin-bottom:0; }
@@ -486,12 +515,20 @@
             padding:0;
         }
         .ffn-memo-footer{
+            width:100%;
             display:flex;
             align-items:center;
-            justify-content:space-between;
+            justify-content:flex-start;
             gap:8px;
         }
+        .ffn-memo-header{
+            width:100%;
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+        }
         .ffn-memo-meta{
+            width:100%;
             display:flex;
             align-items:center;
             gap:8px;
@@ -523,6 +560,11 @@
             display:flex;
             gap:4px;
             flex-shrink:0;
+            opacity:0;
+            transition:opacity .15s;
+        }
+        .ffn-memo-card:hover .ffn-memo-actions{
+            opacity:1;
         }
         .ffn-memo-action-btn{
             padding:5px 10px;
@@ -554,36 +596,113 @@
             background:#fef2f2;
             color:#dc2626;
         }
+        .ffn-memo-card.ffn-editing{
+            border-color:#818cf8;
+            box-shadow:0 0 0 2px rgba(99,102,241,.15);
+        }
         .ffn-inline-editor{
             width:100%;
+            display:grid;
+            grid-template-columns:1fr 1fr;
+            gap:12px;
+            min-height:120px;
         }
-        .ffn-inline-editor textarea{
+        @media(max-width:700px){
+            .ffn-inline-editor{
+                grid-template-columns:1fr;
+            }
+        }
+        .ffn-inline-textarea{
             width:100%;
             box-sizing:border-box;
             border:1px solid #d1d5db;
             border-radius:6px;
-            background:transparent;
-            padding:8px 10px;
+            background:#fafafa;
+            padding:12px;
             font-size:14px;
             line-height:1.7;
             color:#1f2937;
             resize:none;
-            overflow-x:hidden;
-            overflow-y:auto;
+            overflow:hidden;
             outline:none;
-            font-family:inherit;
+            font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;
+            transition:border-color .15s;
+            min-height:120px;
         }
-        .ffn-inline-editor textarea:focus{
+        .ffn-inline-textarea:focus{
             border-color:#4f46e5;
-            outline:2px solid #4f46e5;
+            background:#fff;
         }
-        .ffn-inline-actions{
+        .ffn-inline-preview{
+            border:1px solid #e5e7eb;
+            border-radius:6px;
+            padding:12px;
+            background:#fff;
+            overflow-y:auto;
+            max-height:400px;
+            min-height:120px;
+        }
+        .ffn-inline-toolbar{
             width:100%;
             display:flex;
-            justify-content:flex-end;
-            gap:8px;
+            justify-content:space-between;
+            align-items:center;
             margin-top:8px;
+            padding-top:8px;
+            border-top:1px solid #f3f4f6;
         }
+        .ffn-md-shortcuts{
+            display:flex;
+            gap:2px;
+        }
+        .ffn-md-btn{
+            width:28px;
+            height:28px;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            border:none;
+            background:transparent;
+            border-radius:4px;
+            font-size:12px;
+            font-weight:600;
+            color:#6b7280;
+            cursor:pointer;
+            font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+            transition:background .1s,color .1s;
+        }
+        .ffn-md-btn:hover{
+            background:#f3f4f6;
+            color:#111827;
+        }
+        .ffn-inline-action-btns{
+            display:flex;
+            gap:6px;
+        }
+        .ffn-inline-cancel{
+            padding:6px 14px;
+            border:none;
+            background:transparent;
+            border-radius:6px;
+            font-size:13px;
+            font-weight:500;
+            color:#6b7280;
+            cursor:pointer;
+            transition:background .1s;
+        }
+        .ffn-inline-cancel:hover{ background:#f3f4f6; }
+        .ffn-inline-save{
+            padding:6px 14px;
+            border:none;
+            background:#4f46e5;
+            color:#fff;
+            border-radius:6px;
+            font-size:13px;
+            font-weight:500;
+            cursor:pointer;
+            transition:background .1s;
+        }
+        .ffn-inline-save:hover{ background:#4338ca; }
         .ffn-empty-state{
             display:flex;
             flex-direction:column;
@@ -988,6 +1107,18 @@
         editPanel.className = 'ffn-note-editor-panel active';
         editPanel.appendChild(textarea);
 
+        const miniPreviewWrap = document.createElement('details');
+        miniPreviewWrap.className = 'ffn-note-mini-preview-wrap';
+
+        const miniPreviewSummary = document.createElement('summary');
+        miniPreviewSummary.textContent = '即時預覽';
+
+        const miniPreviewContent = document.createElement('div');
+        miniPreviewContent.className = 'ffn-note-mini-preview ffn-memo-content';
+        miniPreviewWrap.append(miniPreviewSummary, miniPreviewContent);
+        editPanel.appendChild(miniPreviewWrap);
+        miniPreviewWrap.open = true;
+
         const previewPanel = document.createElement('div');
         previewPanel.className = 'ffn-note-editor-panel';
 
@@ -1002,7 +1133,9 @@
         tagsInput.value = note ? formatTagsForInput(note.tags) : '';
 
         const updatePreview = () => {
-            previewContent.innerHTML = renderMarkdown(textarea.value || '');
+            const html = renderMarkdown(textarea.value || '');
+            previewContent.innerHTML = html;
+            miniPreviewContent.innerHTML = html || PREVIEW_PLACEHOLDER_HTML;
         };
         updatePreview();
 
@@ -1170,38 +1303,170 @@
         return dLabel;
     }
 
-    function startInlineEdit(note) {
-        if (!note) return;
-        editingInlineNoteId = note.id;
-        editingInlineText = note.text || '';
-        renderNotesList();
+    function bindInlineEditTrigger(card, note) {
+        const contentEl = card.querySelector('.ffn-memo-content');
+        if (!contentEl) return;
+        contentEl.ondblclick = (e) => {
+            e.preventDefault();
+            enterInlineEdit(card, note);
+        };
     }
 
-    function cancelInlineEdit() {
-        editingInlineNoteId = null;
-        editingInlineText = '';
-        renderNotesList();
+    function enterInlineEdit(card, note) {
+        if (!card || !note) return;
+        if (card.classList.contains('ffn-editing')) return;
+        const existing = notesPanelEl ? notesPanelEl.querySelector('.ffn-memo-card.ffn-editing') : null;
+        if (existing && existing !== card) exitInlineEdit(existing);
+
+        const contentEl = card.querySelector('.ffn-memo-content');
+        if (!contentEl) return;
+
+        card.classList.add('ffn-editing');
+        inlineCardState.set(card, { originalHTML: contentEl.innerHTML, note: { ...note } });
+        contentEl.innerHTML = '';
+
+        const editorWrap = document.createElement('div');
+        editorWrap.className = 'ffn-inline-editor';
+
+        const textarea = document.createElement('textarea');
+        textarea.className = 'ffn-inline-textarea';
+        textarea.value = note.text || '';
+        textarea.placeholder = '輸入筆記內容（支援 Markdown）...';
+
+        const preview = document.createElement('div');
+        preview.className = 'ffn-inline-preview ffn-memo-content';
+        preview.innerHTML = renderMarkdown(note.text || '') || PREVIEW_PLACEHOLDER_HTML;
+
+        const updatePreview = () => {
+            preview.innerHTML = renderMarkdown(textarea.value || '') || PREVIEW_PLACEHOLDER_HTML;
+        };
+
+        textarea.addEventListener('input', () => {
+            autoGrowTextarea(textarea);
+            updatePreview();
+        });
+
+        const toolbar = document.createElement('div');
+        toolbar.className = 'ffn-inline-toolbar';
+
+        const mdBtns = document.createElement('div');
+        mdBtns.className = 'ffn-md-shortcuts';
+        const shortcuts = [
+            { label: 'B', title: '粗體', prefix: '**', suffix: '**' },
+            { label: 'I', title: '斜體', prefix: '*', suffix: '*' },
+            { label: '~', title: '刪除線', prefix: '~~', suffix: '~~' },
+            { label: '<>', title: '程式碼', prefix: '`', suffix: '`' },
+            { label: '—', title: '分隔線', insert: '\n---\n' },
+            { label: '•', title: '清單', insert: '\n- ' }
+        ];
+
+        shortcuts.forEach(s => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'ffn-md-btn';
+            btn.textContent = s.label;
+            btn.title = s.title;
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                if (s.insert) {
+                    const pos = textarea.selectionStart;
+                    textarea.value = textarea.value.slice(0, pos) + s.insert + textarea.value.slice(pos);
+                    textarea.selectionStart = textarea.selectionEnd = pos + s.insert.length;
+                } else {
+                    const start = textarea.selectionStart;
+                    const end = textarea.selectionEnd;
+                    const selected = textarea.value.slice(start, end);
+                    textarea.value = textarea.value.slice(0, start) + s.prefix + selected + s.suffix + textarea.value.slice(end);
+                    textarea.selectionStart = start + s.prefix.length;
+                    textarea.selectionEnd = start + s.prefix.length + selected.length;
+                }
+                textarea.focus();
+                autoGrowTextarea(textarea);
+                updatePreview();
+            });
+            mdBtns.appendChild(btn);
+        });
+
+        const actionBtns = document.createElement('div');
+        actionBtns.className = 'ffn-inline-action-btns';
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.type = 'button';
+        cancelBtn.className = 'ffn-inline-cancel';
+        cancelBtn.textContent = '取消';
+        cancelBtn.addEventListener('click', () => exitInlineEdit(card));
+
+        const saveBtn = document.createElement('button');
+        saveBtn.type = 'button';
+        saveBtn.className = 'ffn-inline-save';
+        saveBtn.textContent = '儲存';
+        saveBtn.addEventListener('click', () => commitInlineEdit(card, textarea.value));
+
+        textarea.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                e.preventDefault();
+                commitInlineEdit(card, textarea.value);
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                exitInlineEdit(card);
+            }
+        });
+
+        toolbar.append(mdBtns, actionBtns);
+        actionBtns.append(cancelBtn, saveBtn);
+        editorWrap.append(textarea, preview);
+        contentEl.append(editorWrap, toolbar);
+
+        requestAnimationFrame(() => {
+            autoGrowTextarea(textarea);
+            textarea.focus();
+            textarea.setSelectionRange(0, 0);
+        });
     }
 
-    function saveInlineEdit(note, text) {
-        const nextText = (text || '').trim();
-        if (!nextText) {
+    function exitInlineEdit(card) {
+        if (!card) return;
+        const contentEl = card.querySelector('.ffn-memo-content');
+        if (!contentEl) return;
+        const state = inlineCardState.get(card) || {};
+        card.classList.remove('ffn-editing');
+        contentEl.innerHTML = state.originalHTML || '';
+        bindInlineEditTrigger(card, state.note);
+        inlineCardState.delete(card);
+    }
+
+    function commitInlineEdit(card, text) {
+        if (!card) return;
+        const trimmed = (text || '').trim();
+        if (!trimmed) {
             alert('請輸入筆記內容');
             return;
         }
 
+        const state = inlineCardState.get(card) || {};
+        const note = state.note;
+        if (!note) return;
         const store = loadStore();
         const idx = store.notes.findIndex(n => n.id === note.id);
         if (idx < 0) return;
         store.notes[idx] = {
             ...store.notes[idx],
-            text: nextText,
+            text: trimmed,
             updatedAt: new Date().toISOString()
         };
         saveStore(store);
-        editingInlineNoteId = null;
-        editingInlineText = '';
-        renderNotesList();
+        const reboundNote = {
+            ...note,
+            text: trimmed,
+            updatedAt: store.notes[idx].updatedAt
+        };
+
+        const contentEl = card.querySelector('.ffn-memo-content');
+        if (!contentEl) return;
+        card.classList.remove('ffn-editing');
+        contentEl.innerHTML = renderMarkdown(trimmed);
+        bindInlineEditTrigger(card, reboundNote);
+        inlineCardState.delete(card);
     }
 
     function renderNotesList() {
@@ -1210,10 +1475,6 @@
         list.innerHTML = '';
 
         const notes = getFilteredSortedNotes();
-        if (editingInlineNoteId && !notes.some(note => note.id === editingInlineNoteId)) {
-            editingInlineNoteId = null;
-            editingInlineText = '';
-        }
 
         // Update header count
         const headerTitle = notesPanelEl.querySelector('.ffn-main-header-title');
@@ -1244,58 +1505,34 @@
             const card = document.createElement('div');
             card.className = 'ffn-memo-card';
 
+            const time = document.createElement('span');
+            time.className = 'ffn-memo-time';
+            time.title = `建立: ${formatDateTime(note.createdAt)}`;
+            time.textContent = formatDateTime(note[dateField] || note.createdAt);
+
+            const actions = document.createElement('div');
+            actions.className = 'ffn-memo-actions';
+
+            const editBtn = document.createElement('button');
+            editBtn.className = 'ffn-memo-action-btn';
+            editBtn.textContent = '✏️';
+            editBtn.title = '編輯';
+
+            const delBtn = document.createElement('button');
+            delBtn.className = 'ffn-memo-action-btn ffn-delete';
+            delBtn.textContent = '🗑️';
+            delBtn.title = '刪除';
+
+            actions.append(editBtn, delBtn);
+
+            const header = document.createElement('div');
+            header.className = 'ffn-memo-header';
+            header.append(time, actions);
+
             const content = document.createElement('div');
             content.className = 'ffn-memo-content';
-            if (note.id === editingInlineNoteId) {
-                const inlineEditor = document.createElement('div');
-                inlineEditor.className = 'ffn-inline-editor';
-
-                const textarea = document.createElement('textarea');
-                textarea.value = editingInlineText;
-                autoGrowTextarea(textarea);
-                textarea.addEventListener('input', () => {
-                    editingInlineText = textarea.value;
-                    autoGrowTextarea(textarea);
-                });
-                textarea.addEventListener('keydown', (e) => {
-                    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-                        e.preventDefault();
-                        saveInlineEdit(note, textarea.value);
-                    } else if (e.key === 'Escape') {
-                        e.preventDefault();
-                        cancelInlineEdit();
-                    }
-                });
-
-                const inlineActions = document.createElement('div');
-                inlineActions.className = 'ffn-inline-actions';
-
-                const inlineCancelBtn = document.createElement('button');
-                inlineCancelBtn.type = 'button';
-                inlineCancelBtn.className = 'ffn-memo-action-btn';
-                inlineCancelBtn.textContent = '取消';
-                inlineCancelBtn.addEventListener('click', () => cancelInlineEdit());
-
-                const inlineSaveBtn = document.createElement('button');
-                inlineSaveBtn.type = 'button';
-                inlineSaveBtn.className = 'ffn-memo-action-btn ffn-primary';
-                inlineSaveBtn.textContent = '儲存';
-                inlineSaveBtn.addEventListener('click', () => saveInlineEdit(note, textarea.value));
-
-                inlineActions.append(inlineCancelBtn, inlineSaveBtn);
-                inlineEditor.append(textarea, inlineActions);
-                content.appendChild(inlineEditor);
-                setTimeout(() => {
-                    textarea.focus();
-                }, 0);
-            } else {
-                // renderMarkdown 內部會先 escape 使用者輸入，再套用受控 markdown 標記
-                content.innerHTML = renderMarkdown(note.text || '');
-                content.addEventListener('dblclick', (e) => {
-                    e.preventDefault();
-                    startInlineEdit(note);
-                });
-            }
+            // renderMarkdown 內部會先 escape 使用者輸入，再套用受控 markdown 標記
+            content.innerHTML = renderMarkdown(note.text || '');
 
             const footer = document.createElement('div');
             footer.className = 'ffn-memo-footer';
@@ -1323,37 +1560,21 @@
                 meta.appendChild(customTag);
             });
 
-            const time = document.createElement('span');
-            time.className = 'ffn-memo-time';
-            time.title = `建立: ${formatDateTime(note.createdAt)}`;
-            time.textContent = formatDateTime(note[dateField] || note.createdAt);
-
-            const actions = document.createElement('div');
-            actions.className = 'ffn-memo-actions';
-
-            const editBtn = document.createElement('button');
-            editBtn.className = 'ffn-memo-action-btn';
-            editBtn.textContent = '✏️ 編輯';
-            editBtn.addEventListener('click', () => startInlineEdit(note));
-
-            const delBtn = document.createElement('button');
-            delBtn.className = 'ffn-memo-action-btn ffn-delete';
-            delBtn.textContent = '🗑️ 刪除';
+            editBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                enterInlineEdit(card, note);
+            });
             delBtn.addEventListener('click', () => {
                 if (!confirm('確定要刪除此筆記？')) return;
                 const store = loadStore();
                 store.notes = store.notes.filter(n => n.id !== note.id);
                 saveStore(store);
-                if (editingInlineNoteId === note.id) {
-                    editingInlineNoteId = null;
-                    editingInlineText = '';
-                }
                 renderNotesList();
             });
 
-            actions.append(editBtn, delBtn);
-            footer.append(meta, time, actions);
-            card.append(content, footer);
+            footer.appendChild(meta);
+            card.append(header, content, footer);
+            bindInlineEditTrigger(card, note);
             list.appendChild(card);
         });
     }
