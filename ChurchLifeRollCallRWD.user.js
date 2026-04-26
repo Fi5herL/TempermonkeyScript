@@ -14,7 +14,8 @@
 
     const TABLE_SELECTOR = '#roll-call-panel table#table';
     const PANEL_ID = 'tm-rollcall-rwd-panel';
-    // Keep rendering responsive on mobile when result set is very large.
+    const FIXED_COLUMNS_COUNT = 4;
+    // Conservative cap to avoid long main-thread UI stalls on mobile when matched rows are very large.
     const LIST_LIMIT = 300;
     const RENDER_DEBOUNCE_DELAY = 120;
 
@@ -40,18 +41,23 @@
 
     function getRows() {
         const rows = Array.from(document.querySelectorAll(`${TABLE_SELECTOR} tbody tr`));
-        return rows.filter((row) => row.querySelectorAll('td').length > 4);
+        return rows.filter((row) => row.querySelectorAll('td').length > FIXED_COLUMNS_COUNT);
     }
 
     function getAttendanceHeaders(table) {
         const headerCells = Array.from(table.querySelectorAll('thead th'));
-        return headerCells.slice(4).map((th, index) => th.textContent.trim() || `欄位 ${index + 1}`);
+        return headerCells
+            .slice(FIXED_COLUMNS_COUNT)
+            .map((th, index) => th.textContent.trim() || `欄位 ${index + 1}`);
     }
 
     function getPeopleData() {
         return getRows().map((row) => {
             const cells = Array.from(row.querySelectorAll('td'));
-            const checkboxes = cells.slice(4).map((cell) => cell.querySelector('input[type="checkbox"]')).filter(Boolean);
+            const checkboxes = cells
+                .slice(FIXED_COLUMNS_COUNT)
+                .map((cell) => cell.querySelector('input[type="checkbox"]'))
+                .filter(Boolean);
             const targetCheckbox = checkboxes[state.attendanceIndex] || null;
             return {
                 row,
@@ -124,10 +130,14 @@
 
             const info = document.createElement('div');
             info.className = 'tm-rollcall-item-info';
-            info.innerHTML = `
-                <div class="tm-rollcall-item-name">${person.name || '(未命名)'}</div>
-                <div class="tm-rollcall-item-sub">${person.no}｜${person.distinction}｜${person.sex}</div>
-            `;
+            const nameNode = document.createElement('div');
+            nameNode.className = 'tm-rollcall-item-name';
+            nameNode.textContent = person.name || '(未命名)';
+            const subNode = document.createElement('div');
+            subNode.className = 'tm-rollcall-item-sub';
+            subNode.textContent = `${person.no}｜${person.distinction}｜${person.sex}`;
+            info.appendChild(nameNode);
+            info.appendChild(subNode);
 
             const toggle = document.createElement('button');
             const selected = isSelected(person);
@@ -250,7 +260,7 @@
     function applyEvents() {
         refs.search.addEventListener('input', (event) => {
             state.query = event.target.value || '';
-            render();
+            scheduleRender();
         });
 
         refs.attendanceSelect.addEventListener('change', (event) => {
