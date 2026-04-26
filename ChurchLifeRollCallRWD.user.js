@@ -18,6 +18,11 @@
     // Conservative cap to avoid long main-thread UI stalls on mobile when matched rows are very large.
     const LIST_LIMIT = 300;
     const RENDER_DEBOUNCE_DELAY = 120;
+    const UNNAMED_TEXT = '(未命名)';
+    const UI_TEXT = {
+        EMPTY_RESULT: '查無符合資料',
+        LIST_LIMIT_HINT: `僅顯示前 ${LIST_LIMIT} 筆，請再縮小搜尋條件`
+    };
 
     const state = {
         query: '',
@@ -117,12 +122,13 @@
         if (!people.length) {
             const empty = document.createElement('div');
             empty.className = 'tm-rollcall-empty';
-            empty.textContent = '查無符合資料';
+            empty.textContent = UI_TEXT.EMPTY_RESULT;
             refs.list.replaceChildren(empty);
             return;
         }
 
         const fragment = document.createDocumentFragment();
+        // Apply render cap to keep DOM updates smooth on mobile/low-end devices.
         people.slice(0, LIST_LIMIT).forEach((person) => {
             const item = document.createElement('div');
             item.className = 'tm-rollcall-item';
@@ -131,7 +137,7 @@
             info.className = 'tm-rollcall-item-info';
             const nameNode = document.createElement('div');
             nameNode.className = 'tm-rollcall-item-name';
-            nameNode.textContent = person.name || '(未命名)';
+            nameNode.textContent = person.name || UNNAMED_TEXT;
             const subNode = document.createElement('div');
             subNode.className = 'tm-rollcall-item-sub';
             subNode.textContent = `${person.no}｜${person.distinction}｜${person.sex}`;
@@ -155,7 +161,7 @@
         if (people.length > LIST_LIMIT) {
             const tip = document.createElement('div');
             tip.className = 'tm-rollcall-empty';
-            tip.textContent = `僅顯示前 ${LIST_LIMIT} 筆，請再縮小搜尋條件`;
+            tip.textContent = UI_TEXT.LIST_LIMIT_HINT;
             fragment.appendChild(tip);
         }
 
@@ -314,14 +320,17 @@
 
     function observeTableChanges() {
         const observerTarget = document.querySelector('#roll-call-panel') || document.body;
+        const isRelevantElement = (element) =>
+            element.closest('#roll-call-panel') || element.closest('#pagination');
+
         const observer = new MutationObserver((mutations) => {
             const shouldRender = mutations.some((mutation) => {
                 const target = mutation.target;
                 if (!(target instanceof Element)) return false;
-                if (target.closest('#roll-call-panel') || target.closest('#pagination')) return true;
+                if (isRelevantElement(target)) return true;
                 if (mutation.type === 'childList') {
                     const nodes = [...mutation.addedNodes, ...mutation.removedNodes];
-                    return nodes.some((node) => node instanceof Element && (node.closest?.('#roll-call-panel') || node.closest?.('#pagination')));
+                    return nodes.some((node) => node instanceof Element && isRelevantElement(node));
                 }
                 return false;
             });
