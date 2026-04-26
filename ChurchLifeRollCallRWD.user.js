@@ -103,7 +103,7 @@
             state.attendanceIndex = 0;
         }
 
-        refs.attendanceSelect.innerHTML = '';
+        refs.attendanceSelect.replaceChildren();
         headers.forEach((header, index) => {
             const option = document.createElement('option');
             option.value = String(index);
@@ -114,12 +114,11 @@
     }
 
     function renderList(people) {
-        refs.list.innerHTML = '';
         if (!people.length) {
             const empty = document.createElement('div');
             empty.className = 'tm-rollcall-empty';
             empty.textContent = '查無符合資料';
-            refs.list.appendChild(empty);
+            refs.list.replaceChildren(empty);
             return;
         }
 
@@ -160,7 +159,7 @@
             fragment.appendChild(tip);
         }
 
-        refs.list.appendChild(fragment);
+        refs.list.replaceChildren(fragment);
     }
 
     function render() {
@@ -220,8 +219,11 @@
             </div>
             <div class="tm-rollcall-body">
                 <div class="tm-rollcall-controls">
-                    <input class="tm-rollcall-search" type="search" placeholder="搜尋姓名 / NO. / 區別 / 性別" />
-                    <select class="tm-rollcall-select" aria-label="選擇點名欄位"></select>
+                    <input class="tm-rollcall-search" type="search" placeholder="搜尋姓名 / NO. / 區別 / 性別" aria-label="搜尋姓名、編號、區別或性別" />
+                    <div class="tm-rollcall-select-wrap">
+                        <label class="tm-rollcall-inline-label" for="tm-rollcall-select">點名欄位</label>
+                        <select id="tm-rollcall-select" class="tm-rollcall-select" aria-label="選擇點名欄位"></select>
+                    </div>
                 </div>
                 <div class="tm-rollcall-filter-row">
                     <button type="button" data-filter="all" class="active">全部</button>
@@ -299,6 +301,8 @@
             state.collapsed = !state.collapsed;
             refs.panel.classList.toggle('collapsed', state.collapsed);
             refs.collapse.textContent = state.collapsed ? '＋' : '－';
+            refs.collapse.setAttribute('aria-expanded', String(!state.collapsed));
+            refs.collapse.setAttribute('aria-label', state.collapsed ? '展開面板' : '收合面板');
         });
     }
 
@@ -310,7 +314,19 @@
 
     function observeTableChanges() {
         const observerTarget = document.querySelector('#roll-call-panel') || document.body;
-        const observer = new MutationObserver(() => scheduleRender());
+        const observer = new MutationObserver((mutations) => {
+            const shouldRender = mutations.some((mutation) => {
+                const target = mutation.target;
+                if (!(target instanceof Element)) return false;
+                if (target.closest('#roll-call-panel') || target.closest('#pagination')) return true;
+                if (mutation.type === 'childList') {
+                    const nodes = [...mutation.addedNodes, ...mutation.removedNodes];
+                    return nodes.some((node) => node instanceof Element && (node.closest?.('#roll-call-panel') || node.closest?.('#pagination')));
+                }
+                return false;
+            });
+            if (shouldRender) scheduleRender();
+        });
         observer.observe(observerTarget, {
             childList: true,
             subtree: true
@@ -358,6 +374,8 @@
             #${PANEL_ID}.collapsed .tm-rollcall-body { display: none; }
 
             #${PANEL_ID} .tm-rollcall-controls { display: grid; grid-template-columns: 1fr 122px; gap: 8px; margin-bottom: 8px; }
+            #${PANEL_ID} .tm-rollcall-select-wrap { display: flex; flex-direction: column; gap: 3px; }
+            #${PANEL_ID} .tm-rollcall-inline-label { font-size: 11px; color: #6e6e73; line-height: 1; padding-left: 2px; }
             #${PANEL_ID} input, #${PANEL_ID} select, #${PANEL_ID} button {
                 border: 1px solid rgba(60, 60, 67, 0.18);
                 border-radius: 12px;
@@ -452,7 +470,8 @@
         applyEvents();
         observeTableChanges();
         render();
-        console.log('[TM RollCall RWD] initialized');
+        refs.collapse.setAttribute('aria-expanded', 'true');
+        refs.collapse.setAttribute('aria-label', '收合面板');
     }
 
     if (document.readyState === 'loading') {
