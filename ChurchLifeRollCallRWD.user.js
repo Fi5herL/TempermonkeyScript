@@ -14,7 +14,9 @@
 
     const TABLE_SELECTOR = '#roll-call-panel table#table';
     const PANEL_ID = 'tm-rollcall-rwd-panel';
+    // Keep rendering responsive on mobile when result set is very large.
     const LIST_LIMIT = 300;
+    const RENDER_DEBOUNCE_DELAY = 120;
 
     const state = {
         query: '',
@@ -293,7 +295,7 @@
     let renderTimer = null;
     function scheduleRender() {
         clearTimeout(renderTimer);
-        renderTimer = setTimeout(render, 120);
+        renderTimer = setTimeout(render, RENDER_DEBOUNCE_DELAY);
     }
 
     function observeTableChanges() {
