@@ -46,6 +46,7 @@
 
     function getRows() {
         const rows = Array.from(document.querySelectorAll(`${TABLE_SELECTOR} tbody tr`));
+        rows.shift();
         return rows.filter((row) => row.querySelectorAll('td').length > FIXED_COLUMNS_COUNT);
     }
 
@@ -237,16 +238,16 @@
                      <button type="button" data-filter="unchecked">未點名</button>
                  </div>
                 <div class="tm-rollcall-metrics"></div>
-                 <div class="tm-rollcall-action-row">
+                 <div class="tm-rollcall-action-row" style="display:none">
                      <button type="button" class="tm-rollcall-bulk-check">符合全點名</button>
                      <button type="button" class="tm-rollcall-bulk-uncheck">符合全取消</button>
                      <button type="button" class="tm-rollcall-refresh">重新整理</button>
-                 </div> 
+                 </div>
                 <div class="tm-rollcall-list"></div>
             </div>
         `;
 
-        
+
         document.body.appendChild(panel);
 
         refs.panel = panel;
