@@ -349,10 +349,10 @@
             #${PANEL_ID} {
                 position: fixed;
                 right: 16px;
-                bottom: 16px;
+                bottom: 5px;
                 z-index: 99999;
                 width: min(500px, calc(100vw - 5px));
-                max-height: calc(100vh - 24px);
+                max-height: calc(100vh - 10px);
                 background: rgba(255, 255, 255, 0.85);
                 backdrop-filter: blur(14px);
                 -webkit-backdrop-filter: blur(14px);
