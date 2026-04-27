@@ -139,6 +139,9 @@
             const nameNode = document.createElement('div');
             nameNode.className = 'tm-rollcall-item-name';
             nameNode.textContent = person.name || UNNAMED_TEXT;
+            if (nameNode.textContent == UNNAMED_TEXT) {
+              return
+            }
             const subNode = document.createElement('div');
             subNode.className = 'tm-rollcall-item-sub';
             subNode.textContent = `${person.no}｜${person.distinction}｜${person.sex}`;
