@@ -231,7 +231,7 @@
                         <select id="tm-rollcall-select" class="tm-rollcall-select" aria-label="選擇點名欄位"></select>
                     </div>
                 </div>
-                /* <div class="tm-rollcall-filter-row">
+                <div class="tm-rollcall-filter-row">
                      <button type="button" data-filter="all" class="active">全部</button>
                      <button type="button" data-filter="checked">已點名</button>
                      <button type="button" data-filter="unchecked">未點名</button>
@@ -242,7 +242,7 @@
                      <button type="button" class="tm-rollcall-bulk-uncheck">符合全取消</button>
                      <button type="button" class="tm-rollcall-refresh">重新整理</button>
                  </div> 
-                <div class="tm-rollcall-list"></div> */
+                <div class="tm-rollcall-list"></div>
             </div>
         `;
 
@@ -349,10 +349,8 @@
                 right: 16px;
                 bottom: 16px;
                 z-index: 99999;
-                // width: min(430px, calc(100vw - 24px));
-                width: 100%;
-                height: 100%
-                // max-height: calc(100vh - 24px);
+                width: min(430px, calc(100vw - 5px));
+                max-height: calc(100vh - 24px);
                 background: rgba(255, 255, 255, 0.85);
                 backdrop-filter: blur(14px);
                 -webkit-backdrop-filter: blur(14px);
