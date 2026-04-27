@@ -231,21 +231,21 @@
                         <select id="tm-rollcall-select" class="tm-rollcall-select" aria-label="選擇點名欄位"></select>
                     </div>
                 </div>
-
+                <div class="tm-rollcall-filter-row">
+                     <button type="button" data-filter="all" class="active">全部</button>
+                     <button type="button" data-filter="checked">已點名</button>
+                     <button type="button" data-filter="unchecked">未點名</button>
+                 </div>
+                <div class="tm-rollcall-metrics"></div>
+                 <div class="tm-rollcall-action-row">
+                     <button type="button" class="tm-rollcall-bulk-check">符合全點名</button>
+                     <button type="button" class="tm-rollcall-bulk-uncheck">符合全取消</button>
+                     <button type="button" class="tm-rollcall-refresh">重新整理</button>
+                 </div> 
                 <div class="tm-rollcall-list"></div>
             </div>
         `;
-                // <div class="tm-rollcall-filter-row">
-                //      <button type="button" data-filter="all" class="active">全部</button>
-                //      <button type="button" data-filter="checked">已點名</button>
-                //      <button type="button" data-filter="unchecked">未點名</button>
-                //  </div>
-                // <div class="tm-rollcall-metrics"></div>
-                //  <div class="tm-rollcall-action-row">
-                //      <button type="button" class="tm-rollcall-bulk-check">符合全點名</button>
-                //      <button type="button" class="tm-rollcall-bulk-uncheck">符合全取消</button>
-                //      <button type="button" class="tm-rollcall-refresh">重新整理</button>
-                //  </div> 
+
         
         document.body.appendChild(panel);
 
