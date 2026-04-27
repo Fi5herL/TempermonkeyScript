@@ -231,6 +231,10 @@
                         <select id="tm-rollcall-select" class="tm-rollcall-select" aria-label="選擇點名欄位"></select>
                     </div>
                 </div>
+
+                <div class="tm-rollcall-list"></div>
+            </div>
+        `;
                 // <div class="tm-rollcall-filter-row">
                 //      <button type="button" data-filter="all" class="active">全部</button>
                 //      <button type="button" data-filter="checked">已點名</button>
@@ -242,10 +246,7 @@
                 //      <button type="button" class="tm-rollcall-bulk-uncheck">符合全取消</button>
                 //      <button type="button" class="tm-rollcall-refresh">重新整理</button>
                 //  </div> 
-                <div class="tm-rollcall-list"></div>
-            </div>
-        `;
-
+        
         document.body.appendChild(panel);
 
         refs.panel = panel;
