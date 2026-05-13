@@ -1797,6 +1797,7 @@
         const grid = notesPanelEl.querySelector('#ffn-calendar-grid');
         if (!titleEl || !grid) return;
 
+        // calState.month 採用 Date API 慣例：0 = 一月，11 = 十二月
         const monthLabel = `${calState.year}-${String(calState.month + 1).padStart(2, '0')}`;
         titleEl.textContent = monthLabel;
         grid.innerHTML = '';
